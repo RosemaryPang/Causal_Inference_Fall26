@@ -4,7 +4,7 @@
     "href": "index.html",
     "title": "Welcome Page",
     "section": "",
-    "text": "Welcome to DACSS790 Causal Inference. All classroom material, including recordings, slides, tutorials, and assignment descriptions, will be posted in Canvas.\nThis tutorial website contains the R code and output of weekly tutorials.\n Weekly Tutorials \nWeek 1 Regression Review & Bias\nWeek 2 Directed Acyclic Graphs\nWeek 3 Randomization Design\nWeek 4 Mediation Analysis\nWeek 5 Instrumental Variable\nWeek 6 Panel Data Analysis\nWeek 7 Difference in Differences\nWeek 8 Matching\nWeek 9 Synthetic Control\nWeek 10 Regression Discontinuity Design"
+    "text": "Welcome to DACSS790 Causal Inference. All classroom material, including slides, tutorials, and assignment descriptions, will be posted in Canvas.\nThis tutorial website contains the R code and output of weekly tutorials.\n Weekly Tutorials \nWeek 1 Regression Review & Bias"
   },
   {
     "objectID": "about.html",
