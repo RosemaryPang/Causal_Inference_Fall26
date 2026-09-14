@@ -200,7 +200,7 @@ window.Quarto = {
   <li><a href="#logistic-regression" id="toc-logistic-regression" class="nav-link" data-scroll-target="#logistic-regression">Logistic Regression</a></li>
   <li><a href="#why-adding-control-variables-is-not-enough" id="toc-why-adding-control-variables-is-not-enough" class="nav-link" data-scroll-target="#why-adding-control-variables-is-not-enough">Why Adding Control Variables is NOT Enough</a>
   <ul class="collapse">
-  <li><a href="#simpsons-paradox-and-collider-bias" id="toc-simpsons-paradox-and-collider-bias" class="nav-link" data-scroll-target="#simpsons-paradox-and-collider-bias">Simpson’s Paradox and Collider Bias</a></li>
+  <li><a href="#collider-bias" id="toc-collider-bias" class="nav-link" data-scroll-target="#collider-bias">Collider Bias</a></li>
   <li><a href="#multicollinearity" id="toc-multicollinearity" class="nav-link" data-scroll-target="#multicollinearity">Multicollinearity</a></li>
   </ul></li>
   <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion">Conclusion</a></li>
@@ -237,8 +237,8 @@ window.Quarto = {
 <p>4. Logistic regression</p>
 <section id="background" class="level1">
 <h1>Background</h1>
-<p>Each week, the tutorial will include all of the code to demonstrate some of the fundamental aspects of the work we are doing. The tutorials on the website include R code and output. If you would like to execute &amp; edit the code, please download the .qmd file from Google Classroom, and execute &amp; edit the code in RStudio.</p>
-<p>You’ll do code inside of <code>cells</code> that look like this:</p>
+<p>Each week, the tutorial will include all of the code to demonstrate some of the fundamental aspects of the work we are doing. The tutorials on the website include R code and output. If you would like to execute &amp; edit the code, please download the .qmd file from Canvas, and execute &amp; edit the code in RStudio.</p>
+<p>You’ll do code inside of <code>code chunks</code> that look like this:</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">5</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>x <span class="sc">+</span> <span class="dv">10</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -256,11 +256,11 @@ window.Quarto = {
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
-✔ dplyr     1.1.4     ✔ readr     2.1.5
-✔ forcats   1.0.0     ✔ stringr   1.5.1
-✔ ggplot2   3.5.1     ✔ tibble    3.2.1
-✔ lubridate 1.9.4     ✔ tidyr     1.3.1
-✔ purrr     1.0.2     
+✔ dplyr     1.2.1     ✔ readr     2.2.0
+✔ forcats   1.0.1     ✔ stringr   1.6.0
+✔ ggplot2   4.0.3     ✔ tibble    3.3.1
+✔ lubridate 1.9.5     ✔ tidyr     1.3.2
+✔ purrr     1.2.2     
 ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
 ✖ dplyr::filter() masks stats::filter()
 ✖ dplyr::lag()    masks stats::lag()
@@ -417,7 +417,7 @@ Multiple R-squared:  0.1223,    Adjusted R-squared:  0.0585
 F-statistic: 1.917 on 4 and 55 DF,  p-value: 0.1206</code></pre>
 </div>
 </div>
-<p>Results show that after controlling for gender and party affiliation, hours of TV watching still has a statistically significant impact on GPA at the 90% confidence level. Each additional hour of TV watched per week is associated with a 0.017 point decrease in GPA. Compared to Democrats, Independents have a 0.16 point higher GPA, but this difference is not statistically significant.</p>
+<p>Results show that after controlling for gender and party affiliation, hours of TV watching is still negatively associated with GPA at the 90% confidence level. Each additional hour of TV watched per week is associated with a 0.017 point decrease in GPA. Compared to Democrats, Independents have a 0.16 point higher GPA, but this difference is not statistically significant.</p>
 <p>In this model, we use Democrats as the reference category (baseline) for party affiliation. You can also change the baseline into other category using <code>relevel()</code> function.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>student.survey<span class="sc">$</span>pa2 <span class="ot">&lt;-</span> <span class="fu">relevel</span>(student.survey<span class="sc">$</span>pa, <span class="at">ref =</span> <span class="st">"i"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -453,7 +453,7 @@ Multiple R-squared:  0.09761,   Adjusted R-squared:  0.04926
 F-statistic: 2.019 on 3 and 56 DF,  p-value: 0.1216</code></pre>
 </div>
 </div>
-<p>In this model, <span class="math inline">\(GPA=3.539−0.0219TV−0.1773Male+0.0044(TV*Male)\)</span>. Unlike previous models where we could interpret coefficients directly, interaction terms modify the effect of one variable depending on the value of another. This means we need to substitute specific values to understand the impact on different groups. For female students (male=0), watching one additional hour of TV is associated with a 0.0219 point decrease in GPA. For male students (male=1), each additional hour of TV is associated with a 0.0175 point (<span class="math inline">\(-0.219+0.044\)</span>) decrease in GPA. Since the interaction term is not statistically significant, it suggests that the relationship between TV watching and GPA is similar for both genders.</p>
+<p>In this model, <span class="math inline">\(GPA=3.539−0.0219TV−0.1773Male+0.0044(TV*Male)\)</span>. Unlike previous models where we could interpret coefficients directly, interaction terms modify the effect of one variable depending on the value of another. This means we need to substitute specific values to understand the impact on different groups. For female students (male=0), watching one additional hour of TV is associated with a 0.0219 point decrease in GPA. For male students (male=1), each additional hour of TV is associated with a 0.0175 point (<span class="math inline">\(-0.0219+0.0044\)</span>) decrease in GPA. Since the interaction term is not statistically significant, it suggests that the relationship between TV watching and GPA is similar for both genders.</p>
 </section>
 <section id="regression-table" class="level2">
 <h2 class="anchored" data-anchor-id="regression-table">Regression Table</h2>
@@ -548,7 +548,7 @@ Note:                            *p&lt;0.1; **p&lt;0.05; ***p&lt;0.01</code></pr
 </div>
 </div>
 </div>
-<p>Now we see a linear relationship after we take the nature log of GDP per capita. Then we can run an OLS regression like earlier.</p>
+<p>Now we see a linear relationship after we take the natural log of GDP per capita. Then we can run an OLS regression like earlier.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>m4 <span class="ot">&lt;-</span> <span class="fu">lm</span>(Life <span class="sc">~</span> <span class="fu">log</span>(GDP)<span class="sc">+</span>Fert, <span class="at">data=</span>UNdata)</span>
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m4)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -574,16 +574,16 @@ Multiple R-squared:  0.6997,    Adjusted R-squared:  0.683
 F-statistic: 41.93 on 2 and 36 DF,  p-value: 3.954e-10</code></pre>
 </div>
 </div>
-<p>The results suggest that 1-unit increase in <code>log(GDP)</code> is associated with a 2.65 year increase in female life expectancy, and the impact is highly statistically significant. However, if we want to interpret the result using the original GDP level, it would be more complicated.</p>
+<p>The results suggest that 1-unit increase in <code>log(GDP)</code> is associated with a 2.65 year increase in female life expectancy, and the association is highly statistically significant. However, if we want to interpret the result using the original GDP level, it would be more complicated.</p>
 </section>
 <section id="logistic-regression" class="level1">
 <h1>Logistic Regression</h1>
 <p>Until now, we have focused on regression models where the dependent variable is continuous. But what if our outcome is binary, such as “yes/no” or “success/failure”? In such cases, linear regression is not appropriate.</p>
 <p>The example below shows the relationship between glucose level, body mass, and diabetes.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(<span class="st">"PimaIndiansDiabetes2"</span>, <span class="at">package =</span> <span class="st">"mlbench"</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(<span class="st">"SynthDiabetes2"</span>, <span class="at">package =</span> <span class="st">"mlbench"</span>)</span>
 <span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>PimaIndiansDiabetes2 <span class="sc">%&gt;%</span></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>SynthDiabetes2 <span class="sc">%&gt;%</span></span>
 <span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">%&gt;%</span></span>
 <span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">diabetes_int =</span> <span class="fu">ifelse</span>(diabetes <span class="sc">==</span> <span class="st">"pos"</span>, <span class="dv">1</span>, <span class="dv">0</span>)) <span class="sc">%&gt;%</span></span>
 <span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="fu">c</span>(<span class="st">"glucose"</span>, <span class="st">"mass"</span>, <span class="st">"diabetes_int"</span>)) <span class="sc">%&gt;%</span></span>
@@ -641,125 +641,114 @@ glm(formula = diabetes ~ glucose, family = binomial(link = "logit"),
 
 Coefficients:
              Estimate Std. Error z value Pr(&gt;|z|)    
-(Intercept) -5.690114   0.439811  -12.94   &lt;2e-16 ***
-glucose      0.040457   0.003391   11.93   &lt;2e-16 ***
+(Intercept) -5.302419   0.413898  -12.81   &lt;2e-16 ***
+glucose      0.036896   0.003115   11.85   &lt;2e-16 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 (Dispersion parameter for binomial family taken to be 1)
 
-    Null deviance: 974.75  on 751  degrees of freedom
-Residual deviance: 777.72  on 750  degrees of freedom
-AIC: 781.72
+    Null deviance: 983.53  on 749  degrees of freedom
+Residual deviance: 799.05  on 748  degrees of freedom
+AIC: 803.05
 
 Number of Fisher Scoring iterations: 4</code></pre>
 </div>
 </div>
-<p>The coefficient 0.0405 represents the log-odds change in the probability of having diabetes for each one-unit increase in glucose level.</p>
+<p>A one-unit increase in glucose is associated with a 0.0405 increase in the log-odds of diabetes.</p>
 </section>
 <section id="why-adding-control-variables-is-not-enough" class="level1">
 <h1>Why Adding Control Variables is NOT Enough</h1>
-<section id="simpsons-paradox-and-collider-bias" class="level2">
-<h2 class="anchored" data-anchor-id="simpsons-paradox-and-collider-bias">Simpson’s Paradox and Collider Bias</h2>
-<p>Simpson’s paradox means that a tend appears in different groups of data, but disappears or reverses when these groups are combined. Collider bias occurs when we condition on (control for, subset by, or select a sample based on) a variable that is influenced by two other variables. Let’s look into an example using simulated data.</p>
+<section id="collider-bias" class="level2">
+<h2 class="anchored" data-anchor-id="collider-bias">Collider Bias</h2>
+<p>Suppose enrollment in a cardiovascular health program depends on both exercise habits and blood pressure. People who exercise less are more likely to be referred to the program, and people with higher blood pressure are also more likely to be referred.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
 <span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="dv">500</span>  </span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="dv">3000</span></span>
 <span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate exercise levels (hours per week)</span></span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Exercise hours per week</span></span>
 <span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>exercise <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n, <span class="at">mean =</span> <span class="dv">5</span>, <span class="at">sd =</span> <span class="dv">2</span>)</span>
 <span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate blood pressure - Randomly generated, NO relationship with exercise</span></span>
-<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a>blood_pressure <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n, <span class="at">mean =</span> <span class="dv">120</span>, <span class="at">sd =</span> <span class="dv">5</span>)</span>
-<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Obesity is influenced by both exercise and blood pressure (collider)</span></span>
-<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a>obesity <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(exercise <span class="sc">&lt;</span> <span class="dv">5</span> <span class="sc">|</span> blood_pressure <span class="sc">&gt;</span> <span class="dv">120</span>, <span class="dv">1</span>, <span class="dv">0</span>)</span>
-<span id="cb39-13"><a href="#cb39-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-14"><a href="#cb39-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Modify Blood Pressure to create group-specific effects</span></span>
-<span id="cb39-15"><a href="#cb39-15" aria-hidden="true" tabindex="-1"></a>blood_pressure[obesity <span class="sc">==</span> <span class="dv">0</span>] <span class="ot">&lt;-</span> blood_pressure[obesity <span class="sc">==</span> <span class="dv">0</span>] <span class="sc">-</span> <span class="dv">2</span> <span class="sc">*</span> exercise[obesity <span class="sc">==</span> <span class="dv">0</span>]  <span class="co"># Exercise LOWERS BP for non-obese</span></span>
-<span id="cb39-16"><a href="#cb39-16" aria-hidden="true" tabindex="-1"></a>blood_pressure[obesity <span class="sc">==</span> <span class="dv">1</span>] <span class="ot">&lt;-</span> blood_pressure[obesity <span class="sc">==</span> <span class="dv">1</span>] <span class="sc">+</span> <span class="dv">2</span> <span class="sc">*</span> exercise[obesity <span class="sc">==</span> <span class="dv">1</span>]  <span class="co"># Exercise RAISES BP for obese</span></span>
-<span id="cb39-17"><a href="#cb39-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-18"><a href="#cb39-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Create dataframe</span></span>
-<span id="cb39-19"><a href="#cb39-19" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(exercise, blood_pressure, obesity)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a><span class="co"># More exercise lowers blood pressure</span></span>
+<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a>blood_pressure <span class="ot">&lt;-</span> <span class="dv">130</span> <span class="sc">-</span></span>
+<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a>  <span class="fl">0.8</span> <span class="sc">*</span> exercise <span class="sc">+</span></span>
+<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rnorm</span>(n, <span class="at">mean =</span> <span class="dv">0</span>, <span class="at">sd =</span> <span class="dv">8</span>)</span>
+<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-13"><a href="#cb39-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Enrollment in a cardiovascular health program depends on:</span></span>
+<span id="cb39-14"><a href="#cb39-14" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. exercising less</span></span>
+<span id="cb39-15"><a href="#cb39-15" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. having higher blood pressure</span></span>
+<span id="cb39-16"><a href="#cb39-16" aria-hidden="true" tabindex="-1"></a>program_score <span class="ot">&lt;-</span></span>
+<span id="cb39-17"><a href="#cb39-17" aria-hidden="true" tabindex="-1"></a>  <span class="sc">-</span><span class="fl">1.5</span> <span class="sc">*</span> <span class="fu">as.numeric</span>(<span class="fu">scale</span>(exercise)) <span class="sc">+</span></span>
+<span id="cb39-18"><a href="#cb39-18" aria-hidden="true" tabindex="-1"></a>   <span class="fl">2.0</span> <span class="sc">*</span> <span class="fu">as.numeric</span>(<span class="fu">scale</span>(blood_pressure)) <span class="sc">+</span></span>
+<span id="cb39-19"><a href="#cb39-19" aria-hidden="true" tabindex="-1"></a>   <span class="fu">rnorm</span>(n, <span class="at">mean =</span> <span class="dv">0</span>, <span class="at">sd =</span> <span class="fl">0.2</span>)</span>
+<span id="cb39-20"><a href="#cb39-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-21"><a href="#cb39-21" aria-hidden="true" tabindex="-1"></a>health_program <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(</span>
+<span id="cb39-22"><a href="#cb39-22" aria-hidden="true" tabindex="-1"></a>  program_score <span class="sc">&gt;</span> <span class="fu">median</span>(program_score),</span>
+<span id="cb39-23"><a href="#cb39-23" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Enrolled"</span>,</span>
+<span id="cb39-24"><a href="#cb39-24" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Not Enrolled"</span></span>
+<span id="cb39-25"><a href="#cb39-25" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb39-26"><a href="#cb39-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-27"><a href="#cb39-27" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb39-28"><a href="#cb39-28" aria-hidden="true" tabindex="-1"></a>  exercise,</span>
+<span id="cb39-29"><a href="#cb39-29" aria-hidden="true" tabindex="-1"></a>  blood_pressure,</span>
+<span id="cb39-30"><a href="#cb39-30" aria-hidden="true" tabindex="-1"></a>  health_program</span>
+<span id="cb39-31"><a href="#cb39-31" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>The visualization below shows an example of Simpson’s Paradox: the trend differs when analyzing separate groups compared to the pooled data.</p>
+<p>In our case, health program enrollment is therefore a collider because it is influenced by both exercise and blood pressure. Let’s examine the relationship between exercise and blood pressure with and without controlling for health program.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(data, <span class="fu">aes</span>(<span class="at">x =</span> exercise, <span class="at">y =</span> blood_pressure, <span class="at">color =</span> <span class="fu">as.factor</span>(obesity))) <span class="sc">+</span></span>
-<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.6</span>) <span class="sc">+</span></span>
-<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">se =</span> <span class="cn">FALSE</span>) <span class="sc">+</span></span>
-<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="fu">aes</span>(<span class="at">color =</span> <span class="st">"Pooled Data"</span>), <span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">se =</span> <span class="cn">FALSE</span>, <span class="at">data =</span> data, <span class="at">linetype =</span> <span class="st">"dashed"</span>) <span class="sc">+</span></span>
-<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Simpson's Paradox: Exercise &amp; Blood Pressure with Obesity as Collider"</span>,</span>
-<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Exercise (hours per week)"</span>,</span>
-<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Blood Pressure (mmHg)"</span>,</span>
-<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a>       <span class="at">color =</span> <span class="st">"Obesity Status"</span>) <span class="sc">+</span></span>
-<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>`geom_smooth()` using formula = 'y ~ x'
-`geom_smooth()` using formula = 'y ~ x'</code></pre>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="Tutorial1_files/figure-html/unnamed-chunk-20-1.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
-<p>In our case, obesity is a collider because it is influenced by both exercise and blood pressure. Let’s examine the regression results by running models on the pooled data, within each obesity group separately, and with obesity as a control variable.</p>
-<div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Overall regression (ignoring obesity)</span></span>
-<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>overall <span class="ot">&lt;-</span> <span class="fu">lm</span>(blood_pressure <span class="sc">~</span> exercise, <span class="at">data =</span> data)</span>
-<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Regression within subgroup</span></span>
-<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>obese <span class="ot">&lt;-</span> <span class="fu">lm</span>(blood_pressure <span class="sc">~</span> exercise, <span class="at">data =</span> data <span class="sc">%&gt;%</span> <span class="fu">filter</span>(obesity <span class="sc">==</span> <span class="dv">1</span>))</span>
-<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>non_obese <span class="ot">&lt;-</span> <span class="fu">lm</span>(blood_pressure <span class="sc">~</span> exercise, <span class="at">data =</span> data <span class="sc">%&gt;%</span> <span class="fu">filter</span>(obesity <span class="sc">==</span> <span class="dv">0</span>))</span>
-<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Controlling for obesity</span></span>
-<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a>control <span class="ot">&lt;-</span> <span class="fu">lm</span>(blood_pressure <span class="sc">~</span> exercise <span class="sc">+</span> obesity, <span class="at">data =</span> data)</span>
-<span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a><span class="fu">stargazer</span>(overall, obese, non_obese, control,</span>
-<span id="cb42-12"><a href="#cb42-12" aria-hidden="true" tabindex="-1"></a>          <span class="at">type =</span> <span class="st">"text"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Model 1: Not controlling collider</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>no_collider <span class="ot">&lt;-</span> <span class="fu">lm</span>(blood_pressure <span class="sc">~</span> exercise, <span class="at">data =</span> data)</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Model 2: controlling collider</span></span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>collider <span class="ot">&lt;-</span> <span class="fu">lm</span>(</span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>  blood_pressure <span class="sc">~</span> exercise <span class="sc">+</span> health_program,</span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> data</span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a><span class="fu">stargazer</span>(no_collider,collider,</span>
+<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a>          <span class="at">type =</span> <span class="st">"text"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>
-=======================================================================================================================
-                                                            Dependent variable:                                        
-                    ---------------------------------------------------------------------------------------------------
-                                                              blood_pressure                                           
-                              (1)                     (2)                      (3)                      (4)            
------------------------------------------------------------------------------------------------------------------------
-exercise                   -1.593***                2.819***                -1.997***                 2.048***         
-                            (0.314)                 (0.128)                  (0.211)                  (0.135)          
-                                                                                                                       
-obesity                                                                                              32.395***         
-                                                                                                      (0.586)          
-                                                                                                                       
-Constant                  130.907***               117.935***              115.721***                88.997***         
-                            (1.705)                 (0.619)                  (1.422)                  (0.991)          
-                                                                                                                       
------------------------------------------------------------------------------------------------------------------------
-Observations                  500                     362                      138                      500            
-R2                           0.049                   0.575                    0.396                    0.867           
-Adjusted R2                  0.047                   0.573                    0.392                    0.866           
-Residual Std. Error    13.651 (df = 498)        4.443 (df = 360)        3.206 (df = 136)          5.112 (df = 497)     
-F Statistic         25.717*** (df = 1; 498) 486.228*** (df = 1; 360) 89.334*** (df = 1; 136) 1,618.847*** (df = 2; 497)
-=======================================================================================================================
-Note:                                                                                       *p&lt;0.1; **p&lt;0.05; ***p&lt;0.01</code></pre>
+===============================================================================
+                                           Dependent variable:                 
+                           ----------------------------------------------------
+                                              blood_pressure                   
+                                     (1)                        (2)            
+-------------------------------------------------------------------------------
+exercise                          -0.724***                  1.088***          
+                                   (0.073)                    (0.065)          
+                                                                               
+health_programNot Enrolled                                  -12.959***         
+                                                              (0.257)          
+                                                                               
+Constant                          129.599***                126.971***         
+                                   (0.395)                    (0.295)          
+                                                                               
+-------------------------------------------------------------------------------
+Observations                        3,000                      3,000           
+R2                                  0.032                      0.476           
+Adjusted R2                         0.031                      0.475           
+Residual Std. Error           7.957 (df = 2998)          5.856 (df = 2997)     
+F Statistic                97.952*** (df = 1; 2998) 1,360.280*** (df = 2; 2997)
+===============================================================================
+Note:                                               *p&lt;0.1; **p&lt;0.05; ***p&lt;0.01</code></pre>
 </div>
 </div>
-<p>In Model 1, we see that exercise has a negative impact on blood pressure, which makes sense. However, when we examine different subgroups, we find that the direction of the effect varies across groups—a classic example of Simpson’s Paradox. Surprisingly, in Model 4, after controlling for obesity, the coefficient for exercise flips from negative to positive. Does this mean that exercising regularly increases blood pressure? Of course not. This misleading result occurs because obesity is a collider, and controlling for a collider introduces bias rather than reducing it.</p>
+<p>In Model 1, exercise is negatively associated with blood pressure: people who exercise more tend to have lower blood pressure. However, after adding health program enrollment as a control in Model 2, the coefficient for exercise becomes positive.</p>
+<p>Does this mean that exercising regularly increases blood pressure? Of course not. The misleading result occurs because health program enrollment is a collider. Conditioning on a collider can create a spurious relationship between its causes rather than eliminate bias.</p>
 </section>
 <section id="multicollinearity" class="level2">
 <h2 class="anchored" data-anchor-id="multicollinearity">Multicollinearity</h2>
 <p>Adding too many control variables can lead to multicollinearity, where some predictors become highly correlated with each other. This makes it difficult to determine the independent effect of each variable, leading to unstable estimates and inflated standard errors. As a result, even if a variable has a real effect, its coefficient may appear insignificant due to the overlap in explanatory power with other controls. Let’s look into the example below.</p>
-<p>In this example, we have 100 employee with employees’ ages range from 25 to 65. Everyone in the company graduated college at the age of 22, and started working there. Everyone is paid roughly based on their experience. If we run regression using both age and experience as independent variables, we have multicollinearity problem.</p>
+<p>In this example, we have 100 employees whose ages range from 25 to 65. Everyone in the company graduated college at the age of 22, and started working there. Everyone is paid roughly based on their experience. If we run regression using both age and experience as independent variables, we have multicollinearity problem.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
-<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>age <span class="ot">&lt;-</span> <span class="fu">sample</span>(<span class="dv">25</span><span class="sc">:</span><span class="dv">65</span>, <span class="at">size  =</span> <span class="dv">100</span>, <span class="at">replace =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>experience <span class="ot">&lt;-</span> age <span class="sc">-</span> <span class="dv">22</span></span>
-<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>salary <span class="ot">&lt;-</span> <span class="dv">2000</span> <span class="sc">*</span> (experience) <span class="sc">+</span> <span class="fu">rnorm</span>(<span class="dv">100</span>, <span class="at">sd =</span> <span class="dv">20000</span>)</span>
-<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(<span class="fu">lm</span>(salary <span class="sc">~</span> age <span class="sc">+</span> experience))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>age <span class="ot">&lt;-</span> <span class="fu">sample</span>(<span class="dv">25</span><span class="sc">:</span><span class="dv">65</span>, <span class="at">size  =</span> <span class="dv">100</span>, <span class="at">replace =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>experience <span class="ot">&lt;-</span> age <span class="sc">-</span> <span class="dv">22</span></span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>salary <span class="ot">&lt;-</span> <span class="dv">2000</span> <span class="sc">*</span> (experience) <span class="sc">+</span> <span class="fu">rnorm</span>(<span class="dv">100</span>, <span class="at">sd =</span> <span class="dv">20000</span>)</span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(<span class="fu">lm</span>(salary <span class="sc">~</span> age <span class="sc">+</span> experience))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>
 Call:
@@ -784,8 +773,8 @@ F-statistic: 114.4 on 1 and 98 DF,  p-value: &lt; 2.2e-16</code></pre>
 </div>
 <p>This situation is easy to detect because R completely omits the coefficient for experience, indicating perfect multicollinearity. However, in real-world cases, variables may be highly correlated but not perfectly related, meaning R will still report a coefficient. For example, let’s add some variation to <code>age</code>.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>age <span class="ot">&lt;-</span> age <span class="sc">+</span> <span class="fu">round</span>(<span class="fu">rnorm</span>(<span class="dv">100</span>)) </span>
-<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(<span class="fu">lm</span>(salary <span class="sc">~</span> age <span class="sc">+</span> experience))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>age <span class="ot">&lt;-</span> age <span class="sc">+</span> <span class="fu">round</span>(<span class="fu">rnorm</span>(<span class="dv">100</span>)) </span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(<span class="fu">lm</span>(salary <span class="sc">~</span> age <span class="sc">+</span> experience))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>
 Call:
@@ -806,9 +795,9 @@ Multiple R-squared:  0.5385,    Adjusted R-squared:  0.529
 F-statistic: 56.59 on 2 and 97 DF,  p-value: &lt; 2.2e-16</code></pre>
 </div>
 </div>
-<p>Now, we see that although R reports coefficients for both variables, the results are quite strange. The standard errors are extremely high. The p-values are large, meaning we fail to detect a significant relationship – even though age and experience should clearly influence salary. However, the F-test p-value is still small, suggesting that at least one of the predictors matters – we just can’t tell which one!</p>
+<p>Now, we see that although R reports coefficients for both variables, the results are quite strange. The standard errors are extremely high. The p-values are large, meaning we fail to detect a significant relationship – even though experience clearly predicts salary in our simulated data. However, the F-test p-value is still small, suggesting that at least one of the predictors matters – we just can’t tell which one!</p>
 <p>This demonstrates two key indicators of multicollinearity: 1. Large standard errors (high uncertainty in estimates). 2. High p-values for individual variables, despite a significant overall model (low F-test p-value).</p>
-<p>Multicollinearity makes estimates unreliable, leading to misleading or biased results. So, be cautious when adding too many highly correlated control variables—sometimes, they do more harm than good!</p>
+<p>Multicollinearity makes individual coefficient estimates unstable and imprecise, leading to large standard errors and difficulty separating the effects of highly correlated predictors. So, be cautious when adding too many highly correlated control variables—sometimes, they do more harm than good!</p>
 </section>
 </section>
 <section id="conclusion" class="level1">
