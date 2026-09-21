@@ -10,9 +10,9 @@ This tutorial website contains the R code and output of weekly tutorials.
 
 [Week 1 Regression Review \& Bias](https://rosemarypang.com/Causal_Inference_Fall26/Tutorial1.html)
 
-<!--
-[Week 2 Directed Acyclic Graphs](https://rosemarypang.com/Causal_Inference_Spring25/Tutorial2.html)
+[Week 2 Directed Acyclic Graphs](https://rosemarypang.com/Causal_Inference_Fall26/Tutorial2.html)
 
+<!--
 [Week 3 Randomization Design](https://rosemarypang.com/Causal_Inference_Spring25/Tutorial3.html)
 
 [Week 4 Mediation Analysis](https://rosemarypang.com/Causal_Inference_Spring25/Tutorial4.html)

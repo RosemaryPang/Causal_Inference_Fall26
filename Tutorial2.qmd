@@ -142,7 +142,7 @@ dag_tidy
 Now we can create a new column to define node color.
 
 ```{r}
-ggdag(dag_tidy, layout = "stress", text = FALSE,) +
+ggdag(dag_tidy, layout = "stress", text = FALSE) +
   geom_dag_point(aes(fill = ifelse(name=="U1","grey","black")), size = 15, shape = 21, stroke = 0.001) +  # Use 'fill' for color
   geom_dag_label(aes(label = label), color = "black", size = 3, vjust = -0.8) + # vjust for label location
   #geom_dag_text(color = "black", size = 5) +  to modify text color and size (not applicable here)
@@ -154,10 +154,20 @@ ggdag(dag_tidy, layout = "stress", text = FALSE,) +
 
 ## Finding paths
 
-`ggdag_paths()` function shows all the causal and non-causal paths between the exposure and outcome, including frontdoor paths, backdoor paths and paths involving colliders.
+`ggdag_paths()` identifies open paths between the exposure and outcome and classifies them as direct, backdoor, or other paths.
 
 ```{r}
-ggdag_paths(winelife)
+ggdag_paths(winelife, text_col = "black", text_size = 3.5, node_size = 15)
+```
+
+Earlier, we identified several paths between Wine and Lifespan, including backdoor paths through Income and Health. Once we decide which variables to adjust for, we can use the adjust_for argument to see how those paths change after conditioning on the selected variables. Here, we adjust for Income and Health to block the backdoor paths.
+
+```{r}
+ggdag_paths(
+  winelife,
+  adjust_for = c("Income", "Health"),
+  text_col = "black"
+)
 ```
 
 ## Finding parents
@@ -195,7 +205,7 @@ ggdag(Practice, layout="stress")
 ggdag_adjustment_set(Practice)
 ```
 
-## Control for collider?
+## Controlling for collider?
 
 In the lecture, we emphasized that we should never control/block a collider. Because doing so induces a fake correlation between its parent variables, even if they were originally independent.
 
@@ -223,9 +233,36 @@ ggdag_dseparated(IncomeHealth,
 
 Now we see after controlling the collider, Health and Income become d-connected, meaning we are creating a fake relationship between them.
 
-## Blocking the frontdoor?
+We also need to be careful about controlling for a **descendant of a collider**. Even if we do not control for the collider itself, conditioning on one of its descendants can also open the path.
 
-Frontdoor adjustment leverages the mediator as a tool to estimate the causal effect of X on Y. It does not simply 'control for' or 'block' the mediator in the same way we adjust for confounder. We will discuss frontdoor adjustment in more detail during the Mediation Analysis week. For now, let's explore what happens when we block the mediator.
+```{r}
+IncomeHealth_descendant <- dagify(
+  Wine ~ Income + Health,
+  Selected ~ Wine,
+  exposure = "Income",
+  outcome = "Health"
+)
+
+ggdag(IncomeHealth_descendant, layout = "tree",text_col = "#FF1493")
+
+ggdag_dseparated(IncomeHealth_descendant,text_col = "#FF1493")
+```
+
+```{r}
+ggdag_dseparated(
+  IncomeHealth_descendant,
+  controlling_for = "Selected",
+  text_col = "black"
+)
+```
+
+Income and Health are initially d-separated because Wine is a collider. However, after controlling for Selected, a descendant of Wine, Income and Health become d-connected. Therefore, when identifying variables to control for, we should avoid conditioning on colliders and their descendants.
+
+## Controlling for a mediator??
+
+A mediator lies on the causal pathway between the exposure and the outcome. If we are interested in the total effect of the exposure on the outcome, controlling for the mediator blocks part of that causal effect.
+
+Let's see what happens when we control for the mediator in a simple DAG.
 
 ```{r}
 # First create a DAG with a mediator
@@ -245,4 +282,4 @@ ggdag_dseparated(winedrug, controlling_for = "Drug")
 
 # Conclusion
 
-In this tutorial, we explored how to visualize and analyze DAGs in R using the `ggdag` and `dagitty` packages. We learned how to build, customize, and interpret DAGs, identify backdoor and frontdoor paths, and highlight key variables such as confounders, mediators, and colliders. Understanding DAGs helps ensure proper causal inference by guiding which variables to adjust for in analysis. 
+In this tutorial, we explored how to visualize and analyze DAGs in R using the `ggdag` and `dagitty` packages. We learned how to build, customize, and interpret DAGs, identify open paths and sufficient adjustment sets, and highlight key variables such as confounders, mediators, and colliders. Understanding DAGs helps ensure proper causal inference by guiding which variables to adjust for in analysis. 
