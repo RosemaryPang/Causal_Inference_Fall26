@@ -120,7 +120,7 @@ summary(results)
 plot(results)
 ```
 
-The **total effect** in the summary is $b_1$ in the fist step: total effect of X on Y without M. The **direct effect (ADE)** is $b_4$ in the third step: a direct effect of X on Y after taking into account of a mediator effect of M. In this simple linear model without treatment–mediator interaction, the **mediation effect (ACME)** is the total effect minus the direct effect ($b_1-b_4$), which equals to the product of a coefficient of X in the second step and a coefficient of M in the last step ($b_2*b_3$). The goal of mediation analysis is to estimate the indirect effect and assess its uncertainty. Using `mediate()` does not by itself make an analysis causal. A causal interpretation depends on the identification assumptions discussed in the lecture.
+The **total effect** in the summary is $b_1$ in the first step: total effect of X on Y without M. The **direct effect (ADE)** is $b_4$ in the third step: a direct effect of X on Y after taking into account the mediator effect of M. In this simple linear model without treatment–mediator interaction, the **mediation effect (ACME)** is the total effect minus the direct effect ($b_1-b_4$), which equals the product of a coefficient of X in the second step and a coefficient of M in the last step ($b_2*b_3$). The goal of mediation analysis is to estimate the indirect effect and assess its uncertainty. Using `mediate()` does not by itself make an analysis causal. A causal interpretation depends on the identification assumptions discussed in the lecture.
 
 Let's look into a more complicated model. We're using *job* data in `mediation` package.
 
@@ -216,7 +216,7 @@ head(SEMdata)
 
 ## Parallel mediation
 
-In parallel mediation, the model specifies separate mediated pathways without a directed path from one mediator to another. The mediators do not need to be statistically independent. This means that each mediator contributes separately to the total mediation effect, without influencing each other.
+In parallel mediation, the model specifies separate mediated pathways without a directed path from one mediator to another. The mediators do not need to be statistically independent. Each mediator represents a separate pathway from the treatment to the outcome.
 
 We first write down the model specifying all relationships. The indirect effects are defined to capture the mediation pathways: one through **interest** (mstr_int_achv = a × b) and another through **anxiety** (mstr_anxt_achv = c × d). The total effect combines all direct and indirect effects, allowing us to assess the full impact of mastery on achievement.
 
@@ -256,7 +256,7 @@ model2 <- "achieve ~ c*anxiety + e*interest + f*mastery
 "
 ```
 
-Note that in sequential mediation, it is not enough to only compute the total and indirect effects of the initial treatment variable (mastery). Since mediators influence one another in a chain, we must also consider the total and indirect effects of the first mediator (interest) to fully capture the mediation process. 
+In sequential mediation, we can estimate indirect effects through different pathways, including pathways that pass through multiple mediators. We may also define effects beginning with the first mediator if they are substantively useful.
 
 ```{r}
 fit2 <- sem(model2, data = SEMdata, se="bootstrap", bootstrap = 1000)
