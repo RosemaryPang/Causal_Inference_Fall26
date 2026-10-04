@@ -1,250 +1,271 @@
 ---
-title: "Tutorial 3 Randomization Design"
+title: "Tutorial 3 Mediation Analysis"
 pagetitle: Tutorial_3
 ---
 
-Randomization is a fundamental principle in experimental design that helps ensure unbiased causal inference. In this tutorial, you'll learn how to implement different randomization techniques in R using the `randomizr` package. By the end of this tutorial, you should be familiar with the following:
+Mediation analysis is a key tool in causal inference, helping researchers understand how and why a treatment influences an outcome through an intermediate variable (mediator). In this tutorial, you'll learn how to implement both **traditional and causal mediation analysis** in R using the `mediation` package, as well as explore **structural equation modeling (SEM)** with the `lavaan` package. By the end of this tutorial, you should be familiar with the following:
 
-1. packages `randomizr`
+1. packages `mediation` and `lavaan`
 
-2. Simple random assignment
+2. Traditional mediation analysis
 
-3. Complete random assignment
+3. Causal mediation analysis
 
-4. Block random assignment
-
-5. Clustered assignment
-
-6. Blocked and clustered assignment
+4. Structural equation modeling
 
 # Front-end Matters
 
-`randomizr` is a lightweight R package designed to simplify the random assignment process in experiments. It provides a transparent, flexible, and reproducible way to assign units to treatment and control groups using various randomization designs. Proper randomization is essential for ensuring valid causal inference, but in many studies, the details of how treatment was assigned are often lost or imprecisely documented. `randomizr` helps researchers generate, document, and replicate random assignments with ease, reducing errors and improving experimental rigor.
+The `mediation` and `lavaan` packages are essential tools for conducting **mediation analysis** and **structural equation modeling (SEM)** in R. The `mediation` package estimates direct and indirect effects under causal identification assumptions and provides tools for sensitivity analysis. The `lavaan` package enables flexible SEM modeling, handling multiple mediators and latent variables.
 
 ```{r}
-#install.packages("randomizr")
+#install.packages("mediation")
+#install.packages("lavaan")
 
-library(randomizr)
+library(mediation)
+library(lavaan)
 ```
 
-# Simulating data for demonstration
+# Traditional mediation analysis
 
-We'll simulate a dataset of 600 individuals, each with attributes such as *FavoriteFruit*, *PreferredDrink*, and *AgeGroup*. Additionally, we'll introduce **Region** to represent **clustering** and **DietType** to represent **blocks**.
+In this section, we perform traditional mediation analysis using Baron and Kenny’s method. This approach involves a three-step regression process to assess whether the effect of an independent variable on an outcome is mediated through an intermediate variable.
+
+In this tutorial, we examine whether self-esteem serves as a mediator in the relationship between grades and happiness. In this dataset, X represents grades, Y represents happiness, and M represents self-esteem.
 
 ```{r}
-set.seed(123)  
+tradata <- read.csv('http://static.lib.virginia.edu/statlab/materials/data/mediationData.csv')
 
-N <- 600
-
-# Simulate attributes
-FavoriteFruit <- sample(c("Apple", "Banana", "Cherry", "Orange"), N, replace = TRUE)
-PreferredDrink <- sample(c("Water", "Juice", "Soda", "Tea"), N, replace = TRUE)
-AgeGroup <- sample(c("Child", "Teen", "Adult", "Senior"), N, replace = TRUE)
-
-# Simulate clusters (Regions)
-Region <- sample(paste("Region", 1:6), N, replace = TRUE)
-
-# Simulate blocks (Diet Types)
-DietType <- sample(c("Vegetarian", "Vegan", "Keto", "Low-fat"), N, replace = TRUE)
-
-# Combine into a data frame
-simulated_data <- data.frame(
-  FavoriteFruit,
-  PreferredDrink,
-  AgeGroup,
-  Region,
-  DietType
-)
-
-# Display the first few rows of the dataset
-head(simulated_data)
+head(tradata)
 ```
 
-We now need to create simulated potential outcomes. We’ll call the untreated outcome $Y0$ and we’ll call the treated outcome $Y1$. If we were really running an experiment, we would only observe either $Y0$ or $Y1$ for each subject, but since we are simulating, we generate both. Our **inferential target** is the average treatment effect (**ATE**), which is defined as the average difference between $Y0$ and $Y1$.
+**Step 1**, we want X to affect Y. If there is no relationship between X and Y, there is nothing to mediate. Although this is what Baron and Kenny originally suggested, this step is controversial. Even if we don’t find a significant association between X and Y, we could move forward to the next step if we have a good theoretical background about their relationship.
 
 ```{r}
-# Convert categorical variables to factors
-simulated_data$AgeGroup <- factor(simulated_data$AgeGroup, levels = c("Child", "Teen", "Adult", "Senior"))
-simulated_data$DietType <- factor(simulated_data$DietType, levels = c("Vegetarian", "Vegan", "Keto", "Low-fat"))
-
-# Assign numerical values to AgeGroup and DietType for outcome calculation
-age_effect <- as.numeric(simulated_data$AgeGroup)
-diet_effect <- as.numeric(simulated_data$DietType)
-
-# Calculate potential outcomes
-set.seed(123)  # For reproducibility
-simulated_data$Y0 <- rnorm(N, mean = 10 + age_effect - diet_effect, sd = 3)
-simulated_data$Y1 <- simulated_data$Y0 + 2*age_effect + 3*diet_effect 
-
-# Display the first few rows with outcomes
-head(simulated_data)
-
-# Calculate true ATE
-ATE_true <- with(simulated_data, mean(Y1 - Y0))
-print(ATE_true)
+step1 <- lm(Y ~ X, tradata)
+summary(step1)
 ```
 
-We are now ready to allocate treatment assignments to subjects. Let’s start by contrasting simple and complete random assignment.
-
-# Simple random assignment
-
-Simple random assignment assigns all subjects to treatment with an equal probability by flipping a (weighted) coin for each subject. The main trouble with simple random assignment is that a different number of subjects might be assigned to each group.
-
-`simple_ra()` assumes a two-group design and a 0.50 probability of assignment. Note that if we don't set seed, the number of subject in each group is subject to change.
+Since X has a significant impact on Y, we can move on to the next step: **Step 2**, we want X to affect M. If X and M have no relationship, M is just a third variable that may or may not be associated with Y. Under the Baron and Kenny approach, evidence that X predicts M is one of the required steps.
 
 ```{r}
+step2 <- lm(M ~ X, tradata)
+summary(step2)
+```
+
+Since X has a significant impact on M, we can move on to the next step: **Step 3**, we want M to affect Y, but X to no longer affect Y (or X to still affect Y but in a smaller magnitude). Under the traditional approach, evidence for mediation was inferred when the effect of X on Y became smaller or disappeared after M was included. The effect of X on Y goes through M.
+
+```{r}
+step3 <- lm(Y ~ X + M, tradata)
+summary(step3)
+```
+
+In the traditional terminology, if the effect of X on Y completely disappears, M fully mediates between X and Y (full mediation). If the effect of X on Y still exists, but in a smaller magnitude, M partially mediates between X and Y (partial mediation). The example shows a full mediation, yet a full mediation rarely happens in practice.
+
+Once we find these relationships, we want to see if this mediation effect is statistically significant. To do so, there are two main approaches: the Sobel test and bootstrapping.
+
+Sobel test is a parametric test used to determine whether the indirect effect (a × b) is statistically significant. It uses the standard errors of a (X → M) and b (M → Y) to compute a Z-score, testing if the indirect effect is significantly different from zero. The Sobel test uses a normal approximation for the sampling distribution of the indirect effect, which can perform poorly when the indirect effect is skewed or the sample is small.
+
+```{r}
+# Extract coefficients and standard errors
+a <- coef(step2)["X"]  # Effect of X on M
+b <- coef(step3)["M"]  # Effect of M on Y
+sa <- summary(step2)$coefficients["X", "Std. Error"]  # SE of a
+sb <- summary(step3)$coefficients["M", "Std. Error"]  # SE of b
+
+# Sobel Test Calculation
+sobel_z <- (a * b) / sqrt((b^2 * sa^2) + (a^2 * sb^2))
+sobel_p <- 2 * (1 - pnorm(abs(sobel_z)))  # Two-tailed p-value
+
+# Print results
+cat("Sobel Test Z-score:", sobel_z, "\n")
+cat("Sobel Test p-value:", sobel_p, "\n")
+
+```
+
+Bootstrapping, in contrast, is a non-parametric method that repeatedly resamples the dataset to create an empirical distribution of the mediation effect. Instead of assuming normality, it estimates confidence intervals (CIs) from thousands of resamples. Bootstrapping does not rely on a normal approximation for the indirect effect and is generally preferred because the sampling distribution of the indirect effect is often non-normal.
+
+```{r}
+#install.packages("boot")
+library(boot)
+
+# Define function to compute indirect effect
+indirect_effect <- function(data, indices) {
+  d <- data[indices, ]  # Resample data
+  a <- coef(lm(M ~ X, data = d))["X"]
+  b <- coef(lm(Y ~ X + M, data = d))["M"]
+  return(a * b)  # Indirect effect
+}
+
+# Perform bootstrapping
 set.seed(123)
-Z <- simple_ra(N=N)
-table(Z)
+boot_results <- boot(data = tradata, statistic = indirect_effect, R = 1000)
+
+# Print bootstrapped confidence intervals
+boot.ci(boot_results, type = "perc")
 ```
 
-We can compare the ATE from the randomized experiment, and compare it with the true ATE.
+Both tests indicate a significant mediation effect. We conclude that **there exists a positive indirect association between grades and happiness through self-esteem.** This analysis alone does not establish that this mediation process is causal.
+
+However, traditional mediation analysis has key limitations -- it relies on correlational assumptions and does not explicitly model counterfactual outcomes. This means that while we observe a mediation effect, we cannot make strong causal claims about whether self-esteem truly transmits the effect of grades on happiness.
+
+# Causal mediation analysis
+
+To address these limitations, we turn to causal mediation analysis, which is implemented in R using the mediation package. While the first steps look similar to Baron & Kenny’s approach—fitting regression models for the mediator and outcome—the mediate() function goes beyond simple associations by using a counterfactual framework to estimate the **Average Causal Mediation Effect (ACME)** and **Average Direct Effect (ADE)**. This allows for a formal causal interpretation of mediation effects, assuming key assumptions hold.
+
+## Simple model
 
 ```{r}
-# Assign treatment and control groups based on random assignment
-simulated_data2 <- cbind(simulated_data,Z)
+results <- mediate(step2, step3, treat='X', mediator='M',boot=TRUE, sims=500)
+summary(results)
 
-Y_observed <- ifelse(simulated_data2$Z == 1, simulated_data2$Y1, simulated_data2$Y0)
-
-ATE_est <- mean(Y_observed[Z == 1]) - mean(Y_observed[Z == 0])
-print(ATE_est)
+plot(results)
 ```
 
-This estimated ATE is pretty close to the true ATE (12.41). This suggests that this random sample is a good representation of the population.
+The **total effect** in the summary is $b_1$ in the fist step: total effect of X on Y without M. The **direct effect (ADE)** is $b_4$ in the third step: a direct effect of X on Y after taking into account of a mediator effect of M. In this simple linear model without treatment–mediator interaction, the **mediation effect (ACME)** is the total effect minus the direct effect ($b_1-b_4$), which equals to the product of a coefficient of X in the second step and a coefficient of M in the last step ($b_2*b_3$). The goal of mediation analysis is to obtain this mediation effect and see if it’s statistically significant. Using `mediate()` does not by itself make an analysis causal. A causal interpretation depends on the identification assumptions discussed in the lecture.
 
-We can also change the probability of assignment, by specifying the `prob` argument. `prob` indicates the percentage that receive the treatment.
+Let's look into a more complicated model. We're using *job* data in `mediation` package.
+
+## Model with covariates
+
+We use the *jobs* data from `mediation` package. This dataset is from the Job Search Intervention Study. In this dataset, people in the treatment group participated in job-skills workshops (treat). The outcome variable is a continuous measure of depressive symptoms (depress2). A continuous measure of job-search self-efficacy represents a key mediating variable (job_seek). And we also have a list of covariates, including pre-treatment level of depression (depress1), education (educ), income, race(nonwhite), marital status (marital), age, sex, previous occupation (occp), and the level of economic hardship (econ_hard).
 
 ```{r}
-Z <- simple_ra(N = N, prob = 0.30)
-table(Z)
+data("jobs")
+head(jobs)
 ```
 
-Is this still a good representation of the population?
+For causal mediation analysis, we first estimate two linear regressions for both the mediator and the outcome.
 
 ```{r}
-# Assign treatment and control groups based on random assignment
-simulated_data2 <- cbind(simulated_data,Z)
+model.m <- lm(job_seek ~ treat + depress1 + econ_hard + sex + age + occp + marital + nonwhite + educ + income, data = jobs)
 
-Y_observed <- ifelse(simulated_data2$Z == 1, simulated_data2$Y1, simulated_data2$Y0)
+model.y <- lm(depress2 ~ treat + job_seek + depress1 + econ_hard + sex + age + occp + marital + nonwhite + educ + income, data = jobs)
 
-ATE_est <- mean(Y_observed[Z == 1]) - mean(Y_observed[Z == 0])
-print(ATE_est)
+out.1 <- mediate(model.m, model.y, sims = 1000, boot = TRUE, treat = "treat",
+mediator = "job_seek")
+
+summary(out.1)
 ```
 
-Even after changing the percentage of receiving treatment, it still suggests a good representation of the population.
+The estimated indirect effect suggests that the workshop may reduce depressive symptoms partly through increased job-search self-efficacy, under the causal mediation assumptions.
 
-**Simple random assignment ensures that the treatment and control groups are representative of the population, regardless of the percentage assigned to treatment.**
+## Sensitivity
 
-# Complete random assignment
-
-Complete random assignment is very similar to simple random assignment, except that the researcher can specify exactly how many units are assigned to each condition.
-
-If you only specify *N*, `complete_ra()` assigns exactly half of the subjects to treatment.
+We can quickly run a sensitivity analysis using the `medsens()` function from the mediation package. This will help assess how unmeasured confounding between the mediator (job_seek) and outcome (depress2) could affect your results.
 
 ```{r}
-Z <- complete_ra(N = N)
-table(Z)
+sens.out <- medsens(out.1, sims = 1000)
+
+summary(sens.out)
+
+plot(sens.out)
 ```
 
-To change the number of units assigned, specify the *m* argument
+ρ (rho) represents the correlation between the error terms of the mediator (job_seek) and the outcome (depress2) models that would arise if the no-unmeasured mediator–outcome confounding assumption were violated. ρ = -0.2 means that for the mediation effect (ACME) to completely disappear, an unmeasured confounder would need to create a correlation of -0.2 between the errors in M and Y. In this example, the estimated ACME reaches zero at approximately $\rho=-0.2$. Whether this represents a plausible amount of unmeasured confounding depends on substantive knowledge.
+
+The graph shows how fast ACME approaches 0 as ρ increases. If the ACME estimate does not change much across different rho values, it means that the mediation effect is not highly sensitive to hidden confounding. In contrast, if ACME drops to zero (or changes drastically) with a small shift in rho, it indicates that even a small amount of unmeasured confounding could invalidate the mediation effect.
+
+## Treatment–Mediator Interaction
+
+We can allow the mediation effect to differ depending on treatment status. To do this, include an interaction between treatment and the mediator in the outcome model. Here, the **model for the outcome** must be altered by including an interaction term between the treatment indicator (treat) and the mediator variable (job_seek)
 
 ```{r}
-Z <- complete_ra(N = N, m = 200)
-table(Z)
+model.y.inter <- lm(depress2 ~ treat + job_seek + treat:job_seek + depress1 + econ_hard + sex + age + occp + marital + nonwhite + educ + income, data = jobs)
+
+out.2 <- mediate(model.m, model.y.inter, sims = 1000, boot = TRUE, treat = "treat", mediator = "job_seek")
+
+summary(out.2)
 ```
 
-Is Complete random assignment a good representation of the population?
+Now estimates for the mediation effects, direct effects and proportion of total effect mediated correspond to the levels of the treatment. In this case, the mediation effect under the treatment condition, listed as ACME (treated) is estimated to be −.012, while the mediation effect under the control condition, ACME (control), is −.019.
+
+Both ACME estimates are negative. The estimated indirect effect through job-search self-efficacy is -0.0185 under the control condition and -0.0117 under the treatment condition. This means that the treatment has a negative indirect effect on depressive symptoms through job-search self-efficacy under both conditions. The indirect effect is larger in absolute magnitude under the control condition, suggesting that this mediation pathway is stronger when treatment status is held at control than when it is held at treatment.
+
+When having a *mediate* object with interaction, we can select which treatment condition to plot the estimated effects for by selecting the *treatment* argument.
 
 ```{r}
-# Assign treatment and control groups based on random assignment
-simulated_data2 <- cbind(simulated_data,Z)
+plot(out.2, treatment = "both")
 
-Y_observed <- ifelse(simulated_data2$Z == 1, simulated_data2$Y1, simulated_data2$Y0)
-
-ATE_est <- mean(Y_observed[Z == 1]) - mean(Y_observed[Z == 0])
-print(ATE_est)
+#plot(out.2, treatment = "treated")
+#plot(out.2, treatment = "control")
 ```
 
-Again, the estimated ATE is very close to the real ATE, which suggests a good representation of the population.
-
-When should you use `simple_ra()` versus `complete_ra()`? Basically, if the number of units is known beforehand, `complete_ra()` is always preferred, since researchers can plan exactly how many treatments will be deployed.
-
-# Block random assignment
-
-Block random assignment, also known as stratified random assignment, is a powerful technique for improving the precision and interpretability of experimental results. In this design, subjects are first grouped into blocks based on pre-treatment characteristics, and then randomization occurs separately within each block. In our study, the blocking variable is Diet Type, which includes four categories: Vegetarian, Vegan, Omnivore, and Pescatarian. By blocking on diet type, we ensure that each dietary group has an approximately equal proportion of treated and control units, allowing for fair comparisons within each group. Blocking is particularly useful when we suspect that treatment effects may differ across diet types—for example, the treatment may have a stronger effect on one group than another.
-
-Blocking also enhances statistical precision when the blocking variable is correlated with the outcome. Since dietary habits may influence health-related outcomes, blocking on diet type helps reduce random variation and improves the accuracy of our treatment effect estimates.
-
-The only required argument to `block_ra()` is **blocks**. Blocks can be a factor, character, or numeric variable. For example, when simulating data, we set **DietType** as a block.
+Solid lines represent treated group, and dotted lines represent control group. We can also make sensitivity plots for different treatment conditions.
 
 ```{r}
-Z <- block_ra(blocks = simulated_data$DietType)
-table(Z, simulated_data$DietType)
+sens.out.2 <- medsens(out.2, sims = 1000)
+summary(sens.out.2)
+plot(sens.out.2)
 ```
 
-Now we see for each diet type, the subjects are devided equally into treatment and control group.
+The `mediation` package is not limited to OLS models; it also supports mediation analysis for binary, ordinal, and other types of dependent variables, making it highly flexible for different study designs. For more details and documentation, visit the [mediation](https://cran.r-project.org/web/packages/mediation/mediation.pdf) package website.
+
+# Structural Equation Modeling (SEM)
+
+Structural Equation Modeling (SEM) is a statistical framework for jointly modeling relationships among multiple observed and/or latent variables. It can be useful for complex mediation structures, but SEM itself does not establish causal identification. Unlike traditional mediation analysis, SEM enables researchers to simultaneously model multiple mediators, assess indirect and direct effects, and incorporate more flexible model specifications. In this tutorial, we focus on multiple mediation models, specifically **parallel mediation** (where multiple mediators operate independently) and **sequential mediation** (where mediators influence each other in a chain before affecting the outcome). 
+
+The data we are using is downloaded from [here](https://drive.google.com/file/d/1Adn0FP1E82v2moLupRAj8EZZ3O09CtaT/view). Make sure you download the data before running the tutorial.
+
+This data includes independent variable (*mastery* goal), outcome (*achieve*ment), and multiple mediating variables, such as interest and anxiety.
 
 ```{r}
-Z <- block_ra(N)
-table(Z)
+#install.packages("readxl")
+library(readxl)
+SEMdata <- read_excel("regression data.xls")
+head(SEMdata)
 ```
 
-If we have multiple blocking variables -- for example, DietType, FavoriteFruit, and PreferredDrink -- we need to create a single composite blocking variable that uniquely identifies each combination of these three factors.
+## Parallel mediation
+
+In parallel mediation, the model specifies separate mediated pathways without a directed path from one mediator to another. The mediators do not need to be statistically independent. This means that each mediator contributes separately to the total mediation effect, without influencing each other.
+
+We first write down the model specifying all relationships. The indirect effects are defined to capture the mediation pathways: one through **interest** (mstr_int_achv = a × b) and another through **anxiety** (mstr_anxt_achv = c × d). The total effect combines all direct and indirect effects, allowing us to assess the full impact of mastery on achievement.
 
 ```{r}
-# Create a composite block variable by pasting the three factors together
-simulated_data$CompositeBlock <- paste(simulated_data$DietType, simulated_data$FavoriteFruit, simulated_data$PreferredDrink, sep = "_")
-
-# Perform block random assignment using the composite block
-Z <- block_ra(blocks = simulated_data$CompositeBlock)
-
-# Check treatment assignment within each block
-head(table(Z, simulated_data$CompositeBlock))
+model <- "achieve ~ b*interest + d*anxiety + e*mastery
+          interest ~ a*mastery
+          anxiety ~ c*mastery
+          mstr_int_achv := a*b
+          mstr_anxt_achv := c*d
+          Total := a*b + c*d + e
+"
 ```
 
-Comparing the estimated ATE with the real ATE, it shows block random assignment is still representative of the population.
+In `lavaan`, the `:=` operator is used to define custom parameters based on existing model estimates. This is particularly useful in mediation analysis, where indirect effects need to be explicitly computed from path coefficients.
 
 ```{r}
-# Assign treatment and control groups based on random assignment
-simulated_data2 <- cbind(simulated_data,Z)
-
-Y_observed <- ifelse(simulated_data2$Z == 1, simulated_data2$Y1, simulated_data2$Y0)
-
-ATE_est <- mean(Y_observed[Z == 1]) - mean(Y_observed[Z == 0])
-print(ATE_est)
+fit <- sem(model, data = SEMdata, se="bootstrap", bootstrap = 1000)
+summary(fit, fit.measures = T, standardized = T, rsquare = T)
 ```
 
-# Clustered assignment
+Results indicate that mastery goal has indirect effect of 0.162 on achievement through interest. But mastery goal doesn't have indirect effect on achievement through anxiety. Mastery goal has total effect of 0.524 on achievement. 
 
-Clustered random assignment occurs when entire pre-existing groups (**clusters**) -- rather than individuals -- are assigned to treatment or control. This is sometimes unavoidable in experiments where treatment naturally occurs at the group level, such as assigning entire households, classrooms, or villages to an intervention. 
+## Sequential mediation
 
-However, clustered assignment reduces the effective sample size, making it harder to detect treatment effects. If *outcomes within a cluster are highly correlated* (e.g., students in the same classroom perform similarly), the experiment effectively has *fewer independent observations*, reducing statistical power. In extreme cases, if outcomes are perfectly correlated within clusters, the *experiment's effective sample size is only equal to the number of clusters*, not the number of individuals. Despite these drawbacks, clustered randomization remains necessary in many field experiments where individual-level randomization is impractical or could lead to contamination between treated and control units. 
-
-In R, clustered assignment can be implemented using the `cluster_ra()` function, ensuring that all units within a given cluster receive the same treatment while maintaining randomization integrity.
-For example, when simulating data, we set **Region** as a cluster.
+In sequential mediation, the model posits a causal ordering among mediators, such as X → M1 → M2 → Y. This ordering should be justified by theory, research design, and temporal ordering rather than inferred from the SEM results alone. Unlike parallel mediation, where mediators operate independently, sequential mediation assumes that **one mediator influences another** before affecting Y. This allows researchers to explore how intermediate mechanisms unfold over time. For example, in an educational setting, mastery might first enhance interest, which then reduces anxiety, ultimately leading to higher achievement.
 
 ```{r}
-Z <- cluster_ra(clusters = simulated_data$Region)
-
-table(simulated_data$Region, Z)
+model2 <- "achieve ~ c*anxiety + e*interest + f*mastery
+           interest ~ a*mastery
+           anxiety ~ b*interest + d*mastery
+           mstr_int_anxt_achv := a*b*c
+           mstr_int_achv := a*e
+           mstr_anxt_achv := d*c
+           int_anxt_achv := b*c
+           total_mstr := a*b*c + a*e + d*c + f
+           total_int := b*c + e
+"
 ```
 
-This shows that each cluster is either assigned to treatment or control. No two units within the same cluster are assigned to different conditions.
-
-# Blocked and clustered assignment
-
-The power of clustered experiments can sometimes be improved through blocking. In this scenario, whole clusters are members of a particular block – imagine villages nested within discrete regions, or classrooms nested within discrete schools.
-
-Since our data has **Region** to represent **clustering** and **DietType** to represent **blocks**, we can use `block_and_cluster_ra()` to conduct Blocked and clustered assignment.
+Note that in sequential mediation, it is not enough to only compute the total and indirect effects of the initial treatment variable (mastery). Since mediators influence one another in a chain, we must also consider the total and indirect effects of the first mediator (interest) to fully capture the mediation process. 
 
 ```{r}
-# Assign each Region to a single Diet Type (ensuring no overlap)
-region_diet_mapping <- aggregate(DietType ~ Region, data = simulated_data, FUN = function(x) unique(x)[1])
-simulated_data <- merge(simulated_data, region_diet_mapping, by = "Region", suffixes = c("", "_fixed"))
-simulated_data$DietType <- simulated_data$DietType_fixed
-simulated_data$DietType_fixed <- NULL  # Remove extra column
-
-Z <- block_and_cluster_ra(clusters = simulated_data$Region, blocks = simulated_data$DietType)
-head(table(simulated_data$Region, Z))
-head(table(simulated_data$DietType, Z))
+fit2 <- sem(model2, data = SEMdata, se="bootstrap", bootstrap = 1000)
+summary(fit2, fit.measures = T, standardized = T, rsquare = T)
 ```
+
+Results indicate three possible indirect pathways from mastery goal to achievement. The indirect effect through interest alone (mastery → interest → achievement) is 0.162 and statistically significant (p = .004). The indirect effect through anxiety alone (mastery → anxiety → achievement) is 0.016 and is not statistically significant (p = .483). The sequential indirect effect through interest and then anxiety (mastery → interest → anxiety → achievement) is approximately 0.000 and is not statistically significant (p = .958). The total effect of mastery goal on achievement is 0.524 and statistically significant (p < .001). Overall, the mediation effect in this model operates primarily through interest, rather than through anxiety or the sequential interest–anxiety pathway.
+
+# Conclusion
+
+In this tutorial, we explored several approaches to mediation analysis. We began with the traditional Baron and Kenny approach, then introduced causal mediation analysis using the `mediation` package to estimate direct and indirect effects within a counterfactual framework. We also used sensitivity analysis and examined treatment–mediator interaction. Finally, we applied Structural Equation Modeling (SEM) to parallel and sequential mediation models. SEM provides a flexible framework for modeling multiple pathways, but causal interpretation still depends on the underlying research design and identification assumptions.
+
