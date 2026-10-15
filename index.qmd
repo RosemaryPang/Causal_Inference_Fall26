@@ -8,16 +8,17 @@ This tutorial website contains the R code and output of weekly tutorials.
 
 <font size='5'><b> Weekly Tutorials </b></font>
 
-[Week 1 Regression Review \& Bias](https://rosemarypang.com/Causal_Inference_Fall26/Tutorial1.html)
+[Tutorial 1 Regression Review \& Bias](https://rosemarypang.com/Causal_Inference_Fall26/Tutorial1.html)
 
-[Week 2 Directed Acyclic Graphs](https://rosemarypang.com/Causal_Inference_Fall26/Tutorial2.html)
+[Tutorial 2 Directed Acyclic Graphs](https://rosemarypang.com/Causal_Inference_Fall26/Tutorial2.html)
 
-[Week 3 Mediation Analysis](https://rosemarypang.com/Causal_Inference_Fall26/Tutorial3.html)
+[Tutorial 3 Mediation Analysis](https://rosemarypang.com/Causal_Inference_Fall26/Tutorial3.html)
+
+[Tutorial 4 Instrumental Variable](https://rosemarypang.com/Causal_Inference_Spring26/Tutorial5.html)
 
 <!--
 [Week 3 Randomization Design](https://rosemarypang.com/Causal_Inference_Spring25/Tutorial3.html)
 
-[Week 5 Instrumental Variable](https://rosemarypang.com/Causal_Inference_Spring25/Tutorial5.html)
 
 [Week 6 Panel Data Analysis](https://rosemarypang.com/Causal_Inference_Spring25/Tutorial6.html)
 
