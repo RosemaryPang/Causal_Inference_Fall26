@@ -1,6 +1,7 @@
 ---
 title: "Tutorial 4 Instrumental Variables"
 pagetitle: Tutorial_4
+output-file: Tutorial4.html
 ---
 
 Instrumental variable estimation is a crucial tool in causal inference, allowing researchers to address endogeneity and obtain consistent estimates of causal effects under appropriate identification assumptions, even when OLS estimates are inconsistent. This tutorial will guide you through implementing instrumental variable estimation in R using Two-Stage Least Squares (2SLS), as well as testing for endogeneity, weak instruments, and overidentification.
