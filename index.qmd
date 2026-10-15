@@ -14,7 +14,7 @@ This tutorial website contains the R code and output of weekly tutorials.
 
 [Tutorial 3 Mediation Analysis](https://rosemarypang.com/Causal_Inference_Fall26/Tutorial3.html)
 
-[Tutorial 4 Instrumental Variable](https://rosemarypang.com/Causal_Inference_Spring26/Tutorial5.html)
+[Tutorial 4 Instrumental Variable](https://rosemarypang.com/Causal_Inference_Spring26/Tutorial4.html)
 
 <!--
 [Week 3 Randomization Design](https://rosemarypang.com/Causal_Inference_Spring25/Tutorial3.html)
