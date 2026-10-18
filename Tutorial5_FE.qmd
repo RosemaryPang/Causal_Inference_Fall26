@@ -1,6 +1,7 @@
 ---
 title: "Tutorial 5 Panel Data Analysis"
 pagetitle: Tutorial_5
+output-file: Tutorial5.html
 ---
 
 Panel data analysis allows researchers to examine how the same observational units change over time. Fixed effects models can account for observed and unobserved time-invariant characteristics, although panel data alone do not guarantee causal identification.
