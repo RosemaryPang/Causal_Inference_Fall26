@@ -4,7 +4,7 @@
     "href": "index.html",
     "title": "Welcome Page",
     "section": "",
-    "text": "This tutorial website contains the R code and output of weekly tutorials.\n Weekly Tutorials \nTutorial 1 Regression Review & Bias\nTutorial 2 Directed Acyclic Graphs\nTutorial 3 Mediation Analysis\nTutorial 4 Instrumental Variable\nTutorial 5 Panel Data Analysis"
+    "text": "Welcome to DACSS790 Causal Inference. All classroom material, including slides, tutorials, and assignment descriptions, will be posted in Canvas.\nThis tutorial website contains the R code and output of weekly tutorials.\n Weekly Tutorials \nTutorial 1 Regression Review & Bias\nTutorial 2 Directed Acyclic Graphs\nTutorial 3 Mediation Analysis\nTutorial 4 Instrumental Variable\nTutorial 5 Panel Data Analysis"
   },
   {
     "objectID": "Tutorial1.html",
