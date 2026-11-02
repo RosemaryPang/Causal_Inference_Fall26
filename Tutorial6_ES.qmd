@@ -1,0 +1,165 @@
+---
+title: "Tutorial 6 Event Studies"
+pagetitle: Tutorial_6
+output-file: Tutorial6.html
+---
+
+An event study estimates how an outcome changes around a particular event. The key difficulty is not the before-and-after calculation itself, but constructing a credible prediction of what would have happened **without the event**.
+
+In this tutorial, we begin with an example of stock-market abnormal returns, then move to regression-based interrupted time series using real monthly policy data.
+
+By the end of this tutorial, you will be familiar with:
+
+1 . Understanding event studies and constructing counterfactuals
+
+2 . Estimating and interpreting abnormal returns in financial event studies
+
+3 . Estimating level and trend changes using regression-based event studies
+
+4 . Addressing autocorrelation and evaluating model robustness
+
+5 . Extending event studies to multiple groups
+
+# Front-end Matters
+
+We will use `tidyverse` for data preparation and plots, `lubridate` for dates, and `causaldata` for the **Google stock dataset used in the textbook**. The `sandwich` and `lmtest` packages allow us to calculate and report heteroskedasticity- and autocorrelation-consistent (HAC) standard errors. Finally, `fixest` provides the same fixed effects syntax used in our previous panel data tutorial.
+
+```{r}
+# install.packages(c( "causaldata", "sandwich", "lmtest"))
+
+library(tidyverse)
+library(lubridate)
+library(causaldata)
+library(sandwich)
+library(lmtest)
+library(fixest)
+```
+
+# Event Studies in the Stock Market
+
+## Data preparation
+
+On August 10, 2015, Google announced that it would reorganize under Alphabet. We would like to examine whether this unexpected information affected Google's stock return. The `causaldata::google_stock` data contain **84 trading-day observations from May through August 2015**, with three variables:
+
+- `Date`: trading date.
+- `Google_Return`: Google's daily stock return.
+- `SP500_Return`: daily S&P 500 return.
+
+```{r}
+summary(google_stock)
+head(google_stock)
+```
+
+Following the textbook, we use May–July 2015 as the estimation window to estimate normal returns, and August 6–24 as the event window to examine abnormal returns around the announcement.
+
+A short window is often more defensible than a long window for financial announcements because more unrelated news can accumulate as time passes.
+
+```{r}
+# Estimation window: May–July 2015
+est_data <- google_stock %>%
+  filter(Date >= "2015-05-01",
+         Date <= "2015-07-31")
+
+# Event window: August 6–24, 2015
+event_data <- google_stock %>%
+  filter(Date >= "2015-08-06",
+         Date <= "2015-08-24")
+```
+
+##Estimating three normal-return models
+
+We will compare three approaches to estimating normal returns: Mean, Market, and Risk.
+
+**Mean-adjusted return:** predict that Google would earn its average pre-event daily return, $\widehat R_t=\overline R_{pre}$.
+
+**Market-adjusted return:** predict that Google would earn the market's return on that day, $\widehat R_t=R_{m,t}$.
+
+**Risk-adjusted return:** estimate $R_t=\alpha+\beta R_{m,t}+\varepsilon_t$ in the estimation window, then use the model to predict what Google's return would have been given the observed market return.
+
+```{r}
+risk_model <- lm(Google_Return ~ SP500_Return, data = est_data)
+summary(risk_model)
+
+event_data <- event_data %>%
+  mutate(
+    expected_mean = mean(est_data$Google_Return, na.rm = TRUE),
+    expected_market = SP500_Return,
+    expected_risk = predict(risk_model, newdata = event_data),
+    AR_mean = Google_Return - expected_mean,
+    AR_market = Google_Return - expected_market,
+    AR_risk = Google_Return - expected_risk
+  )
+```
+
+The abnormal returns are obtained by subtracting **three different counterfactual predictions** from the same observed return. We prefer an estimate that is robust to reasonable ways of predicting a normal return, although agreement across models is not proof that the announcement caused the difference.
+
+```{r}
+event_data %>%
+  select(Date, AR_mean, AR_market, AR_risk) %>%
+  pivot_longer(cols = starts_with("AR_"),
+               names_to = "method", values_to = "abnormal_return") %>%
+  ggplot(aes(Date, abnormal_return, color = method)) +
+  geom_line(linewidth = 0.8) +
+  geom_point(size = 1.4) +
+  geom_vline(xintercept = as.Date("2015-08-10"), linetype = "dashed") +
+  geom_hline(yintercept = 0) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(x = "Date", y = "Abnormal daily return",
+       title = "Google's abnormal return around the Alphabet announcement") +
+  theme_minimal()
+```
+
+## Average and cumulative abnormal returns
+
+The average abnormal return ($AAR$) and cumulative abnormal return ($CAR$) for an event window $W$ are:
+
+$$AAR_W=\frac{1}{|W|}\sum_{t\in W} AR_t, \qquad CAR_W=\sum_{t\in W} AR_t.$$
+
+```{r}
+post_event <- event_data %>%
+  filter(Date >= as.Date("2015-08-10")) %>%
+  mutate(CAR_risk = cumsum(AR_risk))
+
+post_event %>%
+  summarise(
+    days = n(),
+    AAR_risk = mean(AR_risk),
+    CAR_risk = sum(AR_risk)
+  )
+```
+
+We plot cumulative abnormal returns to examine how the estimated impact accumulates over time. While daily abnormal returns may return to zero after the announcement, CAR can remain positive even when daily abnormal returns return to zero, suggesting that the initial market reaction has not been reversed.
+
+```{r}
+ggplot(post_event, aes(Date, CAR_risk)) +
+  geom_line(linewidth = 0.8) +
+  geom_point(size = 1.5) +
+  geom_hline(yintercept = 0) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(x = "Date", y = "Cumulative abnormal return",
+       title = "CAR from the announcement onward") +
+  theme_minimal()
+```
+
+## Sensitivity to the estimation window
+
+The market-model estimates may depend on which pre-event observations are included. For example, the textbook discusses a large Google return in July 2015. Let's refit the model without July to see whether the risk-adjusted event-day abnormal return changes.
+
+```{r}
+short_est_data <- google_stock %>%
+  filter(Date >= as.Date("2015-05-01"),
+         Date <= as.Date("2015-06-30"))
+
+market_model_early <- lm(Google_Return ~ SP500_Return,                      data = short_est_data)
+
+obs_data <- event_data %>%
+  mutate(AR_risk_early = Google_Return -      predict(market_model_early, newdata = event_data))
+
+obs_data %>%
+  filter(Date > as.Date("2015-08-10")) %>%
+  select(Date, AR_risk, AR_risk_early)
+```
+
+The results are highly consistent across the two estimation windows. On August 11, the estimated abnormal return is 5.35% using May–July data and 5.43% using May–June data, a difference of only 0.08 percentage points. The overall patterns are also similar across the two models, suggesting that our findings are robust to the choice of estimation window.
+
+# Regression-Based Event Studies: Interrupted Time Series
