@@ -207,6 +207,7 @@ window.Quarto = {
   <li><a href="#event-studies-in-the-stock-market" id="toc-event-studies-in-the-stock-market" class="nav-link" data-scroll-target="#event-studies-in-the-stock-market">Event Studies in the Stock Market</a>
   <ul class="collapse">
   <li><a href="#data-preparation" id="toc-data-preparation" class="nav-link" data-scroll-target="#data-preparation">Data preparation</a></li>
+  <li><a href="#estimating-three-normal-return-models" id="toc-estimating-three-normal-return-models" class="nav-link" data-scroll-target="#estimating-three-normal-return-models">Estimating three normal-return models</a></li>
   <li><a href="#average-and-cumulative-abnormal-returns" id="toc-average-and-cumulative-abnormal-returns" class="nav-link" data-scroll-target="#average-and-cumulative-abnormal-returns">Average and cumulative abnormal returns</a></li>
   <li><a href="#sensitivity-to-the-estimation-window" id="toc-sensitivity-to-the-estimation-window" class="nav-link" data-scroll-target="#sensitivity-to-the-estimation-window">Sensitivity to the estimation window</a></li>
   </ul></li>
@@ -217,7 +218,7 @@ window.Quarto = {
   <li><a href="#accounting-for-seasonality" id="toc-accounting-for-seasonality" class="nav-link" data-scroll-target="#accounting-for-seasonality">Accounting for seasonality</a></li>
   <li><a href="#visualizing-effect-size-and-confidence-intervals-over-time" id="toc-visualizing-effect-size-and-confidence-intervals-over-time" class="nav-link" data-scroll-target="#visualizing-effect-size-and-confidence-intervals-over-time">Visualizing effect size and confidence intervals over time</a></li>
   </ul></li>
-  <li><a href="#statistical-inferences" id="toc-statistical-inferences" class="nav-link" data-scroll-target="#statistical-inferences">Statistical Inferences</a>
+  <li><a href="#statistical-inference-and-robustness-checks" id="toc-statistical-inference-and-robustness-checks" class="nav-link" data-scroll-target="#statistical-inference-and-robustness-checks">Statistical Inference and Robustness Checks</a>
   <ul class="collapse">
   <li><a href="#autocorrelation-and-hac" id="toc-autocorrelation-and-hac" class="nav-link" data-scroll-target="#autocorrelation-and-hac">Autocorrelation and HAC</a></li>
   <li><a href="#sensitivity" id="toc-sensitivity" class="nav-link" data-scroll-target="#sensitivity">Sensitivity</a></li>
@@ -343,7 +344,9 @@ The following objects are masked from 'package:base':
 <span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(Date <span class="sc">&gt;=</span> <span class="st">"2015-08-06"</span>,</span>
 <span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>         Date <span class="sc">&lt;=</span> <span class="st">"2015-08-24"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>##Estimating three normal-return models</p>
+</section>
+<section id="estimating-three-normal-return-models" class="level2">
+<h2 class="anchored" data-anchor-id="estimating-three-normal-return-models">Estimating three normal-return models</h2>
 <p>We will compare three approaches to estimating normal returns: Mean, Market, and Risk.</p>
 <p><strong>Mean-adjusted return:</strong> predict that Google would earn its average pre-event daily return, <span class="math inline">\(\widehat R_t=\overline R_{pre}\)</span>.</p>
 <p><strong>Market-adjusted return:</strong> predict that Google would earn the market’s return on that day, <span class="math inline">\(\widehat R_t=R_{m,t}\)</span>.</p>
@@ -747,8 +750,8 @@ F-statistic: 36.89 on 14 and 177 DF,  p-value: &lt; 2.2e-16</code></pre>
 </div>
 </section>
 </section>
-<section id="statistical-inferences" class="level1">
-<h1>Statistical Inferences</h1>
+<section id="statistical-inference-and-robustness-checks" class="level1">
+<h1>Statistical Inference and Robustness Checks</h1>
 <section id="autocorrelation-and-hac" class="level2">
 <h2 class="anchored" data-anchor-id="autocorrelation-and-hac">Autocorrelation and HAC</h2>
 <p>Monthly regression errors may be correlated with errors from nearby months. This is <strong>serial correlation</strong>. Ordinary OLS standard errors assume a simpler error-dependence structure than may be plausible for a time series.</p>

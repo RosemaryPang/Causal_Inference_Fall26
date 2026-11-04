@@ -66,7 +66,7 @@ event_data <- google_stock %>%
          Date <= "2015-08-24")
 ```
 
-##Estimating three normal-return models
+## Estimating three normal-return models
 
 We will compare three approaches to estimating normal returns: Mean, Market, and Risk.
 
@@ -334,7 +334,7 @@ ggplot(post_effects, aes(x = time0, y = effect)) +
   theme_minimal()
 ```
 
-# Statistical Inferences
+# Statistical Inference and Robustness Checks
 
 ## Autocorrelation and HAC
 
