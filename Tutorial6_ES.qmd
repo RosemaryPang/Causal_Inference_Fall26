@@ -163,3 +163,299 @@ obs_data %>%
 The results are highly consistent across the two estimation windows. On August 11, the estimated abnormal return is 5.35% using May–July data and 5.43% using May–June data, a difference of only 0.08 percentage points. The overall patterns are also similar across the two models, suggesting that our findings are robust to the choice of estimation window.
 
 # Regression-Based Event Studies: Interrupted Time Series
+
+## Introducing real policy data
+
+Stock-market event studies are useful when we expect an abrupt response. Policies may instead produce a persistent effect on outcomes. We now analyze a classic **interrupted time series (ITS)** example using the real `Seatbelts` dataset available in base R.
+
+Great Britain introduced compulsory front-seat seat-belt use on **January 31, 1983**. The dataset contains monthly observations from January 1969 through December 1984. The outcome `drivers` is the number of car drivers killed or seriously injured each month. Other variables include vehicle kilometers, petrol prices, and an indicator for the law being in effect.
+
+```{r}
+data("Seatbelts", package = "datasets")
+# No time variable
+
+seatbelt <- as_tibble(as.data.frame(datasets::Seatbelts)) %>%
+  mutate(
+    date = seq.Date(as.Date("1969-01-01"), by = "month", length.out = n()),
+    t = row_number(),
+    month = factor(format(date, "%m"))
+  )
+
+glimpse(seatbelt)
+```
+
+## Segmented regression model
+
+A segmented regression separates an **immediate level change** from a **change in slope**:
+
+$$
+Y_t = \beta_0 + \beta_1 t^* + \beta_2 After_t +
+\beta_3(t^* \times After_t) + \varepsilon_t.
+$$
+
+In the dataset, `law` switches to 1 in **February 1983**, the first complete month after the January 31 law took effect. We center time at that first coded intervention month. The interaction `post_time` is zero before the law and counts elapsed months afterward.
+
+```{r}
+first_law_t <- which(seatbelt$law == 1)[1]
+first_law_date <- seatbelt$date[first_law_t]
+
+seatbelt <- seatbelt %>%
+  mutate(
+    time0 = t - first_law_t,
+    after = law,
+    post_time = time0 * after
+  )
+
+# Sanity Check
+seatbelt %>%
+  filter(abs(time0) <= 2) %>%
+  select(date, drivers, time0, after, post_time)
+```
+
+Estimate the basic segmented regression:
+
+```{r}
+its_simple <- lm(drivers ~ time0 + after + post_time, data = seatbelt)
+summary(its_simple)
+```
+
+- `time0` ($\widehat\beta_1$): monthly trend before the law.
+- `after` ($\widehat\beta_2$): immediate level change at intervention onset.
+- `post_time` ($\widehat\beta_3$): change in monthly slope following the law.
+
+The immediate level change is $−457.77$, suggesting approximately 458 fewer casualties at the beginning of the intervention, relative to the modeled no-law trend.
+
+The slope change is $+19.20$, meaning the monthly trend increased by 19.20 relative to the pre-law slope. Therefore, the estimated post-law slope is $−1.56 + 19.20 = +17.64$ casualties per month.
+
+```{r}
+# Visualizing fitted outcomes and no-law counterfactual
+
+# 1. Predicted outcomes under the actual policy
+seatbelt$fitted <- predict(its_simple)
+
+# 2. Predicted outcomes if the law had never been introduced
+no_law <- seatbelt %>%
+  mutate(
+    after = 0,
+    post_time = 0
+  )
+
+seatbelt$counterfactual <- predict(its_simple, newdata = no_law)
+
+# 3. Show 24 months before treatment and all post-treatment months
+plot_data <- seatbelt %>%
+  filter(time0 >= -24)
+
+ggplot(plot_data, aes(x = date)) +
+  geom_line(aes(y = fitted, color = "Fitted outcome"),
+            linewidth = 1) +
+  geom_line(aes(y = counterfactual, color = "No-law counterfactual"),
+            linewidth = 1, linetype = "dashed") +
+  geom_vline(xintercept = first_law_date,
+             linetype = "dotted") +
+  scale_color_manual(values = c(
+    "Fitted outcome" = "steelblue",
+    "No-law counterfactual" = "firebrick"
+  )) +
+  labs(
+    title = "British Seat-Belt Law: Fitted Outcomes vs. Counterfactual",
+    x = "Date",
+    y = "Drivers killed or seriously injured",
+    color = NULL
+  ) +
+  theme_minimal()
+```
+
+Overall, the model suggests a substantial immediate reduction in casualties, followed by a gradual weakening of this estimated effect over time. 
+
+## Accounting for seasonality
+
+Road casualties may vary systematically across seasons. Include month-of-year fixed effects, then compare the estimated level and slope changes with the original model.
+
+```{r}
+its_season <- lm(drivers ~ time0 + after + post_time + month,
+                 data = seatbelt)
+
+rbind(
+  no_season = coef(its_simple)[c("after", "post_time")],
+  season = coef(its_season)[c("after", "post_time")]
+)
+summary(its_season)
+```
+
+After controlling for month fixed effects, the estimated immediate level change decreases in magnitude from approximately $−458$ to $−300$, while the estimated slope change decreases from $+19.20$ to approximately $+6.87$.
+
+Which model should we choose? The choice depends on our assumptions about the data-generating process. Road casualties may follow recurring seasonal patterns due to weather, daylight, and travel behavior. If these patterns exist, ignoring seasonality may lead us to mistakenly attribute seasonal fluctuations to the seat-belt law. Therefore, the seasonal model may provide a more credible estimate by accounting for these recurring patterns. 
+
+## Visualizing effect size and confidence intervals over time
+
+In a segmented regression, the estimated policy effect $k$ months after the intervention is:
+
+$$
+\widehat\tau_k = \widehat\beta_2 + k\widehat\beta_3,
+\qquad k = 0, 1, 2, \ldots
+$$
+
+The confidence interval depends on **both coefficient variances and their covariance**. For monthly data with possible serial correlation, we use a Newey--West HAC covariance matrix for the plot; the next section explains why. The `lag = 12` choice is illustrative rather than universally optimal.
+
+```{r}
+# Post-intervention months, starting with k = 0
+post_effects <- seatbelt %>%
+  filter(after == 1) %>%
+  select(date, time0)
+
+# HAC covariance matrix for the two relevant coefficients
+V_hac <- sandwich::NeweyWest(its_season, lag = 12,prewhite = FALSE, adjust = TRUE)
+
+b_level <- coef(its_season)["after"]
+b_slope <- coef(its_season)["post_time"]
+
+post_effects <- post_effects %>%
+  mutate(
+    effect = as.numeric(b_level + time0 * b_slope),
+    se = sqrt(V_hac["after", "after"] +
+              time0^2 * V_hac["post_time", "post_time"] +
+              2 * time0 * V_hac["after", "post_time"]),
+    lower = effect - 1.96 * se,
+    upper = effect + 1.96 * se
+  )
+
+head(post_effects)
+
+ggplot(post_effects, aes(x = time0, y = effect)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2) +
+  geom_line(linewidth = 0.9) +
+  geom_point(size = 1.5) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(x = "Months since the law took effect",
+       y = "Estimated change in drivers killed or seriously injured",
+       title = "Estimated dynamic effect of the seat-belt law",
+       subtitle = "Segmented regression; 95% HAC confidence intervals") +
+  theme_minimal()
+```
+
+# Statistical Inferences
+
+## Autocorrelation and HAC
+
+Monthly regression errors may be correlated with errors from nearby months. This is **serial correlation**. Ordinary OLS standard errors assume a simpler error-dependence structure than may be plausible for a time series.
+
+First inspect the autocorrelation function of the residuals. Then compare conventional OLS inference with heteroskedasticity- and autocorrelation-consistent (HAC/Newey--West) inference.
+
+```{r}
+acf(residuals(its_season), main = "ACF: segmented-regression residuals")
+
+# Same coefficient estimates; different uncertainty estimates
+lmtest::coeftest(its_season)
+lmtest::coeftest(its_season, vcov. = V_hac)
+```
+
+The ACF plot shows substantial positive serial correlation in the regression residuals, particularly at shorter lags. This suggests that conventional OLS standard errors may be unreliable.
+
+Compare the standard errors and p-values for after and post_time:
+
+- after (−300.67): The standard error decreases from 66.49 (OLS) to 39.61 (HAC). The immediate level change remains statistically significant.
+
+- post_time (+6.87): The standard error decreases from 4.85 (OLS) to 2.09 (HAC). The slope change becomes statistically significant (p = 0.158 under OLS versus p = 0.0012 under HAC).
+
+Given the serial correlation in the residuals, HAC standard errors are more appropriate than conventional OLS standard errors, assuming the HAC specification is suitable. Notice that HAC does not necessarily increase standard errors; in this case, it reduces them for both coefficients.
+
+However, HAC changes estimated uncertainty, not OLS coefficients. Its results can also depend on the selected bandwidth, which deserves sensitivity checks.
+
+Most importantly, HAC cannot repair a biased counterfactual, omitted concurrent policy changes, or an inappropriate functional form. Correct statistical inference does not guarantee causal identification.
+
+## Sensitivity
+
+Would the estimated level and slope changes survive alternative modeling choices? Here we (a) start the sample in 1975 instead of 1969 and (b) compare a specification without seasonal fixed effects. Both are simple specification checks rather than tests that prove identification.
+
+```{r}
+its_recent <- lm(
+  drivers ~ time0 + after + post_time + month,
+  data = filter(seatbelt, date >= as.Date("1975-01-01"))
+)
+
+sensitivity_results <- tibble(
+  specification = c("Full sample + seasonality",
+                    "1975 onward + seasonality",
+                    "Full sample, no seasonality"),
+  level_change = c(coef(its_season)["after"],
+                   coef(its_recent)["after"],
+                   coef(its_simple)["after"]),
+  slope_change = c(coef(its_season)["post_time"],
+                   coef(its_recent)["post_time"],
+                   coef(its_simple)["post_time"])
+)
+
+sensitivity_results
+```
+
+All three models estimate a negative immediate level change and a positive slope change, suggesting an initial reduction in serious driver casualties followed by a gradual weakening of the estimated effect.
+
+The two models controlling for seasonality produce relatively similar results, while excluding seasonality substantially changes both coefficients. This suggests that accounting for seasonal patterns is important for estimating the intervention's effects.
+
+Shortening the pre-law window may reduce the influence of historical structural changes, but it also provides fewer observations for estimating the baseline trend.
+
+Overall, the direction of the estimated effects is consistent, but their magnitudes are sensitive to model specification, particularly seasonal adjustment.
+
+## Placebo
+
+What if we pretend that a seat-belt law began in **January 1980**, before the actual law? To avoid contamination from the real intervention, use **only observations before February 1983**, then re-estimate the same segmented regression around the fake event date.
+
+```{r}
+placebo_date <- as.Date("1980-01-01")
+
+placebo_df <- seatbelt %>%
+  filter(after == 0) %>%
+  mutate(
+    placebo_time0 = t - which(date >= placebo_date)[1],
+    placebo_after = as.integer(date >= placebo_date),
+    placebo_post_time = placebo_time0 * placebo_after
+  )
+
+placebo_model <- lm(
+  drivers ~ placebo_time0 + placebo_after + placebo_post_time + month,
+  data = placebo_df
+)
+
+lmtest::coeftest(
+  placebo_model,
+  vcov. = sandwich::NeweyWest(placebo_model, lag = 12, prewhite = FALSE, adjust = TRUE)
+)
+```
+
+We pretend that the seat-belt law was introduced in 1980, even though the actual intervention occurred in 1983. Using only pre-law data, we estimate the same segmented regression with this fake intervention date.
+
+- Placebo level change (placebo_after = −54.29): The model estimates an immediate decrease of approximately 54 casualties at the fake intervention date. However, this effect is not statistically significant (p = 0.291).
+
+- Placebo slope change (placebo_post_time = +2.60): The model estimates an increase in the monthly slope of approximately 2.60 casualties following the fake intervention. This change is statistically significant (p = 0.034).
+
+Although the placebo level change is not statistically significant, the model detects a significant slope change in 1980, when no seat-belt law was introduced. This raises concerns that the model may be capturing unrelated changes in the underlying trend rather than exclusively identifying the effect of the 1983 law. The placebo result does not necessarily invalidate our original findings, but it weakens confidence in the counterfactual trend assumption and suggests that further sensitivity checks are needed.
+
+# Multiple Group
+
+## Textbook example
+
+The textbook uses a simple simulation: ten groups observed in ten periods, all experiencing a one-period shock at $t=6$. The event-time indicators estimate differences relative to the final pre-event period ($t=5$).
+
+```{r}
+set.seed(1234)
+
+multiple_groups <- tidyr::crossing(id = 1:10, t = 1:10) %>%
+  mutate(Y = rnorm(n()) + 1 * (t == 6))
+
+model_multiple <- fixest::feols(Y ~ i(t, ref = 5),
+                               data = multiple_groups,
+                               vcov = ~id)
+
+summary(model_multiple)
+fixest::iplot(model_multiple,
+             main = "Event-time differences relative to period 5")
+```
+
+Each coefficient measures how the mean outcome in that period differs from the reference period. There is **no untreated comparison group** and no adjustment for an underlying secular trend. Even though the simulation's true effect is confined to $t=6$, other coefficients may deviate from zero through random noise. 
+
+# Conclusion
+
+In this tutorial, we used a **single-series event study** to construct abnormal returns, then estimated policy-related **level and slope changes** with segmented regression. We translated those coefficients into **dynamic estimated effects and 95% confidence intervals**, assessed serial correlation using **HAC standard errors**, and checked the sensitivity of our results with alternative specifications and a fake intervention date. Finally, we examined how event-time coefficients can be plotted for multiple affected groups without introducing DID.
+
+The central lesson is that **estimation and statistical significance are not enough for causal identification**. Each interpretation depends on whether the proposed no-event counterfactual is credible.

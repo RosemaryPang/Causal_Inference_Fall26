@@ -210,7 +210,24 @@ window.Quarto = {
   <li><a href="#average-and-cumulative-abnormal-returns" id="toc-average-and-cumulative-abnormal-returns" class="nav-link" data-scroll-target="#average-and-cumulative-abnormal-returns">Average and cumulative abnormal returns</a></li>
   <li><a href="#sensitivity-to-the-estimation-window" id="toc-sensitivity-to-the-estimation-window" class="nav-link" data-scroll-target="#sensitivity-to-the-estimation-window">Sensitivity to the estimation window</a></li>
   </ul></li>
-  <li><a href="#regression-based-event-studies-interrupted-time-series" id="toc-regression-based-event-studies-interrupted-time-series" class="nav-link" data-scroll-target="#regression-based-event-studies-interrupted-time-series">Regression-Based Event Studies: Interrupted Time Series</a></li>
+  <li><a href="#regression-based-event-studies-interrupted-time-series" id="toc-regression-based-event-studies-interrupted-time-series" class="nav-link" data-scroll-target="#regression-based-event-studies-interrupted-time-series">Regression-Based Event Studies: Interrupted Time Series</a>
+  <ul class="collapse">
+  <li><a href="#introducing-real-policy-data" id="toc-introducing-real-policy-data" class="nav-link" data-scroll-target="#introducing-real-policy-data">Introducing real policy data</a></li>
+  <li><a href="#segmented-regression-model" id="toc-segmented-regression-model" class="nav-link" data-scroll-target="#segmented-regression-model">Segmented regression model</a></li>
+  <li><a href="#accounting-for-seasonality" id="toc-accounting-for-seasonality" class="nav-link" data-scroll-target="#accounting-for-seasonality">Accounting for seasonality</a></li>
+  <li><a href="#visualizing-effect-size-and-confidence-intervals-over-time" id="toc-visualizing-effect-size-and-confidence-intervals-over-time" class="nav-link" data-scroll-target="#visualizing-effect-size-and-confidence-intervals-over-time">Visualizing effect size and confidence intervals over time</a></li>
+  </ul></li>
+  <li><a href="#statistical-inferences" id="toc-statistical-inferences" class="nav-link" data-scroll-target="#statistical-inferences">Statistical Inferences</a>
+  <ul class="collapse">
+  <li><a href="#autocorrelation-and-hac" id="toc-autocorrelation-and-hac" class="nav-link" data-scroll-target="#autocorrelation-and-hac">Autocorrelation and HAC</a></li>
+  <li><a href="#sensitivity" id="toc-sensitivity" class="nav-link" data-scroll-target="#sensitivity">Sensitivity</a></li>
+  <li><a href="#placebo" id="toc-placebo" class="nav-link" data-scroll-target="#placebo">Placebo</a></li>
+  </ul></li>
+  <li><a href="#multiple-group" id="toc-multiple-group" class="nav-link" data-scroll-target="#multiple-group">Multiple Group</a>
+  <ul class="collapse">
+  <li><a href="#textbook-example" id="toc-textbook-example" class="nav-link" data-scroll-target="#textbook-example">Textbook example</a></li>
+  </ul></li>
+  <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion">Conclusion</a></li>
   </ul>
 </nav>
     </div>
@@ -466,6 +483,488 @@ F-statistic: 12.58 on 1 and 61 DF,  p-value: 0.0007571</code></pre>
 </section>
 <section id="regression-based-event-studies-interrupted-time-series" class="level1">
 <h1>Regression-Based Event Studies: Interrupted Time Series</h1>
+<section id="introducing-real-policy-data" class="level2">
+<h2 class="anchored" data-anchor-id="introducing-real-policy-data">Introducing real policy data</h2>
+<p>Stock-market event studies are useful when we expect an abrupt response. Policies may instead produce a persistent effect on outcomes. We now analyze a classic <strong>interrupted time series (ITS)</strong> example using the real <code>Seatbelts</code> dataset available in base R.</p>
+<p>Great Britain introduced compulsory front-seat seat-belt use on <strong>January 31, 1983</strong>. The dataset contains monthly observations from January 1969 through December 1984. The outcome <code>drivers</code> is the number of car drivers killed or seriously injured each month. Other variables include vehicle kilometers, petrol prices, and an indicator for the law being in effect.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(<span class="st">"Seatbelts"</span>, <span class="at">package =</span> <span class="st">"datasets"</span>)</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="co"># No time variable</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>seatbelt <span class="ot">&lt;-</span> <span class="fu">as_tibble</span>(<span class="fu">as.data.frame</span>(datasets<span class="sc">::</span>Seatbelts)) <span class="sc">%&gt;%</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">date =</span> <span class="fu">seq.Date</span>(<span class="fu">as.Date</span>(<span class="st">"1969-01-01"</span>), <span class="at">by =</span> <span class="st">"month"</span>, <span class="at">length.out =</span> <span class="fu">n</span>()),</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">t =</span> <span class="fu">row_number</span>(),</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">month =</span> <span class="fu">factor</span>(<span class="fu">format</span>(date, <span class="st">"%m"</span>))</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(seatbelt)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 192
+Columns: 11
+$ DriversKilled &lt;dbl&gt; 107, 97, 102, 87, 119, 106, 110, 106, 107, 134, 147, 180…
+$ drivers       &lt;dbl&gt; 1687, 1508, 1507, 1385, 1632, 1511, 1559, 1630, 1579, 16…
+$ front         &lt;dbl&gt; 867, 825, 806, 814, 991, 945, 1004, 1091, 958, 850, 1109…
+$ rear          &lt;dbl&gt; 269, 265, 319, 407, 454, 427, 522, 536, 405, 437, 434, 4…
+$ kms           &lt;dbl&gt; 9059, 7685, 9963, 10955, 11823, 12391, 13460, 14055, 121…
+$ PetrolPrice   &lt;dbl&gt; 0.10297181, 0.10236300, 0.10206249, 0.10087330, 0.101019…
+$ VanKilled     &lt;dbl&gt; 12, 6, 12, 8, 10, 13, 11, 6, 10, 16, 13, 14, 14, 6, 8, 1…
+$ law           &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…
+$ date          &lt;date&gt; 1969-01-01, 1969-02-01, 1969-03-01, 1969-04-01, 1969-05…
+$ t             &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 1…
+$ month         &lt;fct&gt; 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 01, 02, …</code></pre>
+</div>
+</div>
+</section>
+<section id="segmented-regression-model" class="level2">
+<h2 class="anchored" data-anchor-id="segmented-regression-model">Segmented regression model</h2>
+<p>A segmented regression separates an <strong>immediate level change</strong> from a <strong>change in slope</strong>:</p>
+<p><span class="math display">\[
+Y_t = \beta_0 + \beta_1 t^* + \beta_2 After_t +
+\beta_3(t^* \times After_t) + \varepsilon_t.
+\]</span></p>
+<p>In the dataset, <code>law</code> switches to 1 in <strong>February 1983</strong>, the first complete month after the January 31 law took effect. We center time at that first coded intervention month. The interaction <code>post_time</code> is zero before the law and counts elapsed months afterward.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>first_law_t <span class="ot">&lt;-</span> <span class="fu">which</span>(seatbelt<span class="sc">$</span>law <span class="sc">==</span> <span class="dv">1</span>)[<span class="dv">1</span>]</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>first_law_date <span class="ot">&lt;-</span> seatbelt<span class="sc">$</span>date[first_law_t]</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>seatbelt <span class="ot">&lt;-</span> seatbelt <span class="sc">%&gt;%</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">time0 =</span> t <span class="sc">-</span> first_law_t,</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">after =</span> law,</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">post_time =</span> time0 <span class="sc">*</span> after</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Sanity Check</span></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>seatbelt <span class="sc">%&gt;%</span></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">abs</span>(time0) <span class="sc">&lt;=</span> <span class="dv">2</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(date, drivers, time0, after, post_time)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 5 × 5
+  date       drivers time0 after post_time
+  &lt;date&gt;       &lt;dbl&gt; &lt;int&gt; &lt;dbl&gt;     &lt;dbl&gt;
+1 1982-12-01    2079    -2     0         0
+2 1983-01-01    1494    -1     0         0
+3 1983-02-01    1057     0     1         0
+4 1983-03-01    1218     1     1         1
+5 1983-04-01    1168     2     1         2</code></pre>
+</div>
+</div>
+<p>Estimate the basic segmented regression:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>its_simple <span class="ot">&lt;-</span> <span class="fu">lm</span>(drivers <span class="sc">~</span> time0 <span class="sc">+</span> after <span class="sc">+</span> post_time, <span class="at">data =</span> seatbelt)</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(its_simple)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = drivers ~ time0 + after + post_time, data = seatbelt)
+
+Residuals:
+   Min     1Q Median     3Q    Max 
+-458.9 -181.8  -59.3  185.5  878.6 
+
+Coefficients:
+             Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept) 1585.3768    38.3090  41.384  &lt; 2e-16 ***
+time0         -1.5573     0.3909  -3.984 9.68e-05 ***
+after       -457.7681   107.1807  -4.271 3.09e-05 ***
+post_time     19.2016     7.8026   2.461   0.0148 *  
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 247.9 on 188 degrees of freedom
+Multiple R-squared:  0.2788,    Adjusted R-squared:  0.2673 
+F-statistic: 24.22 on 3 and 188 DF,  p-value: 2.674e-13</code></pre>
+</div>
+</div>
+<ul>
+<li><code>time0</code> (<span class="math inline">\(\widehat\beta_1\)</span>): monthly trend before the law.</li>
+<li><code>after</code> (<span class="math inline">\(\widehat\beta_2\)</span>): immediate level change at intervention onset.</li>
+<li><code>post_time</code> (<span class="math inline">\(\widehat\beta_3\)</span>): change in monthly slope following the law.</li>
+</ul>
+<p>The immediate level change is <span class="math inline">\(−457.77\)</span>, suggesting approximately 458 fewer casualties at the beginning of the intervention, relative to the modeled no-law trend.</p>
+<p>The slope change is <span class="math inline">\(+19.20\)</span>, meaning the monthly trend increased by 19.20 relative to the pre-law slope. Therefore, the estimated post-law slope is <span class="math inline">\(−1.56 + 19.20 = +17.64\)</span> casualties per month.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualizing fitted outcomes and no-law counterfactual</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Predicted outcomes under the actual policy</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>seatbelt<span class="sc">$</span>fitted <span class="ot">&lt;-</span> <span class="fu">predict</span>(its_simple)</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Predicted outcomes if the law had never been introduced</span></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>no_law <span class="ot">&lt;-</span> seatbelt <span class="sc">%&gt;%</span></span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">after =</span> <span class="dv">0</span>,</span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">post_time =</span> <span class="dv">0</span></span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a>seatbelt<span class="sc">$</span>counterfactual <span class="ot">&lt;-</span> <span class="fu">predict</span>(its_simple, <span class="at">newdata =</span> no_law)</span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Show 24 months before treatment and all post-treatment months</span></span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a>plot_data <span class="ot">&lt;-</span> seatbelt <span class="sc">%&gt;%</span></span>
+<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(time0 <span class="sc">&gt;=</span> <span class="sc">-</span><span class="dv">24</span>)</span>
+<span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-19"><a href="#cb26-19" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(plot_data, <span class="fu">aes</span>(<span class="at">x =</span> date)) <span class="sc">+</span></span>
+<span id="cb26-20"><a href="#cb26-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> fitted, <span class="at">color =</span> <span class="st">"Fitted outcome"</span>),</span>
+<span id="cb26-21"><a href="#cb26-21" aria-hidden="true" tabindex="-1"></a>            <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb26-22"><a href="#cb26-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> counterfactual, <span class="at">color =</span> <span class="st">"No-law counterfactual"</span>),</span>
+<span id="cb26-23"><a href="#cb26-23" aria-hidden="true" tabindex="-1"></a>            <span class="at">linewidth =</span> <span class="dv">1</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>) <span class="sc">+</span></span>
+<span id="cb26-24"><a href="#cb26-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> first_law_date,</span>
+<span id="cb26-25"><a href="#cb26-25" aria-hidden="true" tabindex="-1"></a>             <span class="at">linetype =</span> <span class="st">"dotted"</span>) <span class="sc">+</span></span>
+<span id="cb26-26"><a href="#cb26-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(</span>
+<span id="cb26-27"><a href="#cb26-27" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Fitted outcome"</span> <span class="ot">=</span> <span class="st">"steelblue"</span>,</span>
+<span id="cb26-28"><a href="#cb26-28" aria-hidden="true" tabindex="-1"></a>    <span class="st">"No-law counterfactual"</span> <span class="ot">=</span> <span class="st">"firebrick"</span></span>
+<span id="cb26-29"><a href="#cb26-29" aria-hidden="true" tabindex="-1"></a>  )) <span class="sc">+</span></span>
+<span id="cb26-30"><a href="#cb26-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb26-31"><a href="#cb26-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"British Seat-Belt Law: Fitted Outcomes vs. Counterfactual"</span>,</span>
+<span id="cb26-32"><a href="#cb26-32" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Date"</span>,</span>
+<span id="cb26-33"><a href="#cb26-33" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Drivers killed or seriously injured"</span>,</span>
+<span id="cb26-34"><a href="#cb26-34" aria-hidden="true" tabindex="-1"></a>    <span class="at">color =</span> <span class="cn">NULL</span></span>
+<span id="cb26-35"><a href="#cb26-35" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb26-36"><a href="#cb26-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Tutorial6_ES_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Overall, the model suggests a substantial immediate reduction in casualties, followed by a gradual weakening of this estimated effect over time.</p>
+</section>
+<section id="accounting-for-seasonality" class="level2">
+<h2 class="anchored" data-anchor-id="accounting-for-seasonality">Accounting for seasonality</h2>
+<p>Road casualties may vary systematically across seasons. Include month-of-year fixed effects, then compare the estimated level and slope changes with the original model.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>its_season <span class="ot">&lt;-</span> <span class="fu">lm</span>(drivers <span class="sc">~</span> time0 <span class="sc">+</span> after <span class="sc">+</span> post_time <span class="sc">+</span> month,</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>                 <span class="at">data =</span> seatbelt)</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="fu">rbind</span>(</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">no_season =</span> <span class="fu">coef</span>(its_simple)[<span class="fu">c</span>(<span class="st">"after"</span>, <span class="st">"post_time"</span>)],</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">season =</span> <span class="fu">coef</span>(its_season)[<span class="fu">c</span>(<span class="st">"after"</span>, <span class="st">"post_time"</span>)]</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>              after post_time
+no_season -457.7681 19.201618
+season    -300.6662  6.871128</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(its_season)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = drivers ~ time0 + after + post_time + month, data = seatbelt)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-332.18 -100.37    1.26   80.28  418.37 
+
+Coefficients:
+             Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept) 1571.5108    43.1812  36.393  &lt; 2e-16 ***
+time0         -1.7784     0.2401  -7.408 5.04e-12 ***
+after       -300.6662    66.4916  -4.522 1.12e-05 ***
+post_time      6.8711     4.8478   1.417  0.15813    
+month02     -179.8594    53.8733  -3.339  0.00103 ** 
+month03     -128.3774    53.8388  -2.384  0.01816 *  
+month04     -240.6454    53.8119  -4.472 1.38e-05 ***
+month05     -102.4133    53.7927  -1.904  0.05855 .  
+month06     -157.2438    53.7812  -2.924  0.00391 ** 
+month07      -80.6993    53.7773  -1.501  0.13524    
+month08      -64.9048    53.7812  -1.207  0.22911    
+month09      -11.1728    53.7927  -0.208  0.83570    
+month10      129.1218    53.8119   2.400  0.01746 *  
+month11      329.6038    53.8388   6.122 5.80e-09 ***
+month12      447.1483    53.8733   8.300 2.59e-14 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 152 on 177 degrees of freedom
+Multiple R-squared:  0.7448,    Adjusted R-squared:  0.7246 
+F-statistic: 36.89 on 14 and 177 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+</div>
+<p>After controlling for month fixed effects, the estimated immediate level change decreases in magnitude from approximately <span class="math inline">\(−458\)</span> to <span class="math inline">\(−300\)</span>, while the estimated slope change decreases from <span class="math inline">\(+19.20\)</span> to approximately <span class="math inline">\(+6.87\)</span>.</p>
+<p>Which model should we choose? The choice depends on our assumptions about the data-generating process. Road casualties may follow recurring seasonal patterns due to weather, daylight, and travel behavior. If these patterns exist, ignoring seasonality may lead us to mistakenly attribute seasonal fluctuations to the seat-belt law. Therefore, the seasonal model may provide a more credible estimate by accounting for these recurring patterns.</p>
+</section>
+<section id="visualizing-effect-size-and-confidence-intervals-over-time" class="level2">
+<h2 class="anchored" data-anchor-id="visualizing-effect-size-and-confidence-intervals-over-time">Visualizing effect size and confidence intervals over time</h2>
+<p>In a segmented regression, the estimated policy effect <span class="math inline">\(k\)</span> months after the intervention is:</p>
+<p><span class="math display">\[
+\widehat\tau_k = \widehat\beta_2 + k\widehat\beta_3,
+\qquad k = 0, 1, 2, \ldots
+\]</span></p>
+<p>The confidence interval depends on <strong>both coefficient variances and their covariance</strong>. For monthly data with possible serial correlation, we use a Newey–West HAC covariance matrix for the plot; the next section explains why. The <code>lag = 12</code> choice is illustrative rather than universally optimal.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Post-intervention months, starting with k = 0</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>post_effects <span class="ot">&lt;-</span> seatbelt <span class="sc">%&gt;%</span></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(after <span class="sc">==</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(date, time0)</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a><span class="co"># HAC covariance matrix for the two relevant coefficients</span></span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>V_hac <span class="ot">&lt;-</span> sandwich<span class="sc">::</span><span class="fu">NeweyWest</span>(its_season, <span class="at">lag =</span> <span class="dv">12</span>,<span class="at">prewhite =</span> <span class="cn">FALSE</span>, <span class="at">adjust =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>b_level <span class="ot">&lt;-</span> <span class="fu">coef</span>(its_season)[<span class="st">"after"</span>]</span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>b_slope <span class="ot">&lt;-</span> <span class="fu">coef</span>(its_season)[<span class="st">"post_time"</span>]</span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a>post_effects <span class="ot">&lt;-</span> post_effects <span class="sc">%&gt;%</span></span>
+<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">effect =</span> <span class="fu">as.numeric</span>(b_level <span class="sc">+</span> time0 <span class="sc">*</span> b_slope),</span>
+<span id="cb31-15"><a href="#cb31-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">se =</span> <span class="fu">sqrt</span>(V_hac[<span class="st">"after"</span>, <span class="st">"after"</span>] <span class="sc">+</span></span>
+<span id="cb31-16"><a href="#cb31-16" aria-hidden="true" tabindex="-1"></a>              time0<span class="sc">^</span><span class="dv">2</span> <span class="sc">*</span> V_hac[<span class="st">"post_time"</span>, <span class="st">"post_time"</span>] <span class="sc">+</span></span>
+<span id="cb31-17"><a href="#cb31-17" aria-hidden="true" tabindex="-1"></a>              <span class="dv">2</span> <span class="sc">*</span> time0 <span class="sc">*</span> V_hac[<span class="st">"after"</span>, <span class="st">"post_time"</span>]),</span>
+<span id="cb31-18"><a href="#cb31-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">lower =</span> effect <span class="sc">-</span> <span class="fl">1.96</span> <span class="sc">*</span> se,</span>
+<span id="cb31-19"><a href="#cb31-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">upper =</span> effect <span class="sc">+</span> <span class="fl">1.96</span> <span class="sc">*</span> se</span>
+<span id="cb31-20"><a href="#cb31-20" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb31-21"><a href="#cb31-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-22"><a href="#cb31-22" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(post_effects)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 6
+  date       time0 effect    se lower upper
+  &lt;date&gt;     &lt;int&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+1 1983-02-01     0  -301.  39.6 -378. -223.
+2 1983-03-01     1  -294.  38.9 -370. -218.
+3 1983-04-01     2  -287.  38.2 -362. -212.
+4 1983-05-01     3  -280.  37.7 -354. -206.
+5 1983-06-01     4  -273.  37.2 -346. -200.
+6 1983-07-01     5  -266.  36.9 -339. -194.</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(post_effects, <span class="fu">aes</span>(<span class="at">x =</span> time0, <span class="at">y =</span> effect)) <span class="sc">+</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_ribbon</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> lower, <span class="at">ymax =</span> upper), <span class="at">alpha =</span> <span class="fl">0.2</span>) <span class="sc">+</span></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">linewidth =</span> <span class="fl">0.9</span>) <span class="sc">+</span></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="fl">1.5</span>) <span class="sc">+</span></span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="dv">0</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>) <span class="sc">+</span></span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Months since the law took effect"</span>,</span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Estimated change in drivers killed or seriously injured"</span>,</span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Estimated dynamic effect of the seat-belt law"</span>,</span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>       <span class="at">subtitle =</span> <span class="st">"Segmented regression; 95% HAC confidence intervals"</span>) <span class="sc">+</span></span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Tutorial6_ES_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="statistical-inferences" class="level1">
+<h1>Statistical Inferences</h1>
+<section id="autocorrelation-and-hac" class="level2">
+<h2 class="anchored" data-anchor-id="autocorrelation-and-hac">Autocorrelation and HAC</h2>
+<p>Monthly regression errors may be correlated with errors from nearby months. This is <strong>serial correlation</strong>. Ordinary OLS standard errors assume a simpler error-dependence structure than may be plausible for a time series.</p>
+<p>First inspect the autocorrelation function of the residuals. Then compare conventional OLS inference with heteroskedasticity- and autocorrelation-consistent (HAC/Newey–West) inference.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">acf</span>(<span class="fu">residuals</span>(its_season), <span class="at">main =</span> <span class="st">"ACF: segmented-regression residuals"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Tutorial6_ES_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Same coefficient estimates; different uncertainty estimates</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>lmtest<span class="sc">::</span><span class="fu">coeftest</span>(its_season)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+t test of coefficients:
+
+              Estimate Std. Error t value  Pr(&gt;|t|)    
+(Intercept) 1571.51082   43.18117 36.3934 &lt; 2.2e-16 ***
+time0         -1.77841    0.24006 -7.4081 5.042e-12 ***
+after       -300.66617   66.49163 -4.5219 1.119e-05 ***
+post_time      6.87113    4.84781  1.4174  0.158133    
+month02     -179.85940   53.87328 -3.3386  0.001027 ** 
+month03     -128.37738   53.83875 -2.3845  0.018161 *  
+month04     -240.64536   53.81188 -4.4720 1.382e-05 ***
+month05     -102.41334   53.79268 -1.9039  0.058552 .  
+month06     -157.24382   53.78116 -2.9238  0.003910 ** 
+month07      -80.69930   53.77731 -1.5006  0.135236    
+month08      -64.90478   53.78116 -1.2068  0.229108    
+month09      -11.17276   53.79268 -0.2077  0.835702    
+month10      129.12175   53.81188  2.3995  0.017455 *  
+month11      329.60377   53.83875  6.1221 5.799e-09 ***
+month12      447.14829   53.87328  8.3000 2.586e-14 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>lmtest<span class="sc">::</span><span class="fu">coeftest</span>(its_season, <span class="at">vcov. =</span> V_hac)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+t test of coefficients:
+
+              Estimate Std. Error t value  Pr(&gt;|t|)    
+(Intercept) 1571.51082   47.84197 32.8480 &lt; 2.2e-16 ***
+time0         -1.77841    0.54085 -3.2882 0.0012164 ** 
+after       -300.66617   39.61240 -7.5902 1.757e-12 ***
+post_time      6.87113    2.09237  3.2839 0.0012339 ** 
+month02     -179.85940   45.67522 -3.9378 0.0001181 ***
+month03     -128.37738   43.54793 -2.9480 0.0036304 ** 
+month04     -240.64536   43.76426 -5.4987 1.320e-07 ***
+month05     -102.41334   50.22005 -2.0393 0.0429077 *  
+month06     -157.24382   46.56523 -3.3769 0.0009014 ***
+month07      -80.69930   48.25959 -1.6722 0.0962532 .  
+month08      -64.90478   52.01968 -1.2477 0.2137903    
+month09      -11.17276   68.21454 -0.1638 0.8700844    
+month10      129.12175   63.23130  2.0421 0.0426299 *  
+month11      329.60377   38.00225  8.6733 2.641e-15 ***
+month12      447.14829   44.72210  9.9984 &lt; 2.2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+</div>
+</div>
+<p>The ACF plot shows substantial positive serial correlation in the regression residuals, particularly at shorter lags. This suggests that conventional OLS standard errors may be unreliable.</p>
+<p>Compare the standard errors and p-values for after and post_time:</p>
+<ul>
+<li><p>after (−300.67): The standard error decreases from 66.49 (OLS) to 39.61 (HAC). The immediate level change remains statistically significant.</p></li>
+<li><p>post_time (+6.87): The standard error decreases from 4.85 (OLS) to 2.09 (HAC). The slope change becomes statistically significant (p = 0.158 under OLS versus p = 0.0012 under HAC).</p></li>
+</ul>
+<p>Given the serial correlation in the residuals, HAC standard errors are more appropriate than conventional OLS standard errors, assuming the HAC specification is suitable. Notice that HAC does not necessarily increase standard errors; in this case, it reduces them for both coefficients.</p>
+<p>However, HAC changes estimated uncertainty, not OLS coefficients. Its results can also depend on the selected bandwidth, which deserves sensitivity checks.</p>
+<p>Most importantly, HAC cannot repair a biased counterfactual, omitted concurrent policy changes, or an inappropriate functional form. Correct statistical inference does not guarantee causal identification.</p>
+</section>
+<section id="sensitivity" class="level2">
+<h2 class="anchored" data-anchor-id="sensitivity">Sensitivity</h2>
+<p>Would the estimated level and slope changes survive alternative modeling choices? Here we (a) start the sample in 1975 instead of 1969 and (b) compare a specification without seasonal fixed effects. Both are simple specification checks rather than tests that prove identification.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>its_recent <span class="ot">&lt;-</span> <span class="fu">lm</span>(</span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>  drivers <span class="sc">~</span> time0 <span class="sc">+</span> after <span class="sc">+</span> post_time <span class="sc">+</span> month,</span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> <span class="fu">filter</span>(seatbelt, date <span class="sc">&gt;=</span> <span class="fu">as.Date</span>(<span class="st">"1975-01-01"</span>))</span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>sensitivity_results <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">specification =</span> <span class="fu">c</span>(<span class="st">"Full sample + seasonality"</span>,</span>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"1975 onward + seasonality"</span>,</span>
+<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"Full sample, no seasonality"</span>),</span>
+<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">level_change =</span> <span class="fu">c</span>(<span class="fu">coef</span>(its_season)[<span class="st">"after"</span>],</span>
+<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a>                   <span class="fu">coef</span>(its_recent)[<span class="st">"after"</span>],</span>
+<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a>                   <span class="fu">coef</span>(its_simple)[<span class="st">"after"</span>]),</span>
+<span id="cb39-13"><a href="#cb39-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">slope_change =</span> <span class="fu">c</span>(<span class="fu">coef</span>(its_season)[<span class="st">"post_time"</span>],</span>
+<span id="cb39-14"><a href="#cb39-14" aria-hidden="true" tabindex="-1"></a>                   <span class="fu">coef</span>(its_recent)[<span class="st">"post_time"</span>],</span>
+<span id="cb39-15"><a href="#cb39-15" aria-hidden="true" tabindex="-1"></a>                   <span class="fu">coef</span>(its_simple)[<span class="st">"post_time"</span>])</span>
+<span id="cb39-16"><a href="#cb39-16" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb39-17"><a href="#cb39-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-18"><a href="#cb39-18" aria-hidden="true" tabindex="-1"></a>sensitivity_results</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 3
+  specification               level_change slope_change
+  &lt;chr&gt;                              &lt;dbl&gt;        &lt;dbl&gt;
+1 Full sample + seasonality          -301.         6.87
+2 1975 onward + seasonality          -357.         5.78
+3 Full sample, no seasonality        -458.        19.2 </code></pre>
+</div>
+</div>
+<p>All three models estimate a negative immediate level change and a positive slope change, suggesting an initial reduction in serious driver casualties followed by a gradual weakening of the estimated effect.</p>
+<p>The two models controlling for seasonality produce relatively similar results, while excluding seasonality substantially changes both coefficients. This suggests that accounting for seasonal patterns is important for estimating the intervention’s effects.</p>
+<p>Shortening the pre-law window may reduce the influence of historical structural changes, but it also provides fewer observations for estimating the baseline trend.</p>
+<p>Overall, the direction of the estimated effects is consistent, but their magnitudes are sensitive to model specification, particularly seasonal adjustment.</p>
+</section>
+<section id="placebo" class="level2">
+<h2 class="anchored" data-anchor-id="placebo">Placebo</h2>
+<p>What if we pretend that a seat-belt law began in <strong>January 1980</strong>, before the actual law? To avoid contamination from the real intervention, use <strong>only observations before February 1983</strong>, then re-estimate the same segmented regression around the fake event date.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>placebo_date <span class="ot">&lt;-</span> <span class="fu">as.Date</span>(<span class="st">"1980-01-01"</span>)</span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>placebo_df <span class="ot">&lt;-</span> seatbelt <span class="sc">%&gt;%</span></span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(after <span class="sc">==</span> <span class="dv">0</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">placebo_time0 =</span> t <span class="sc">-</span> <span class="fu">which</span>(date <span class="sc">&gt;=</span> placebo_date)[<span class="dv">1</span>],</span>
+<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">placebo_after =</span> <span class="fu">as.integer</span>(date <span class="sc">&gt;=</span> placebo_date),</span>
+<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">placebo_post_time =</span> placebo_time0 <span class="sc">*</span> placebo_after</span>
+<span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb41-10"><a href="#cb41-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-11"><a href="#cb41-11" aria-hidden="true" tabindex="-1"></a>placebo_model <span class="ot">&lt;-</span> <span class="fu">lm</span>(</span>
+<span id="cb41-12"><a href="#cb41-12" aria-hidden="true" tabindex="-1"></a>  drivers <span class="sc">~</span> placebo_time0 <span class="sc">+</span> placebo_after <span class="sc">+</span> placebo_post_time <span class="sc">+</span> month,</span>
+<span id="cb41-13"><a href="#cb41-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> placebo_df</span>
+<span id="cb41-14"><a href="#cb41-14" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb41-15"><a href="#cb41-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-16"><a href="#cb41-16" aria-hidden="true" tabindex="-1"></a>lmtest<span class="sc">::</span><span class="fu">coeftest</span>(</span>
+<span id="cb41-17"><a href="#cb41-17" aria-hidden="true" tabindex="-1"></a>  placebo_model,</span>
+<span id="cb41-18"><a href="#cb41-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">vcov. =</span> sandwich<span class="sc">::</span><span class="fu">NeweyWest</span>(placebo_model, <span class="at">lag =</span> <span class="dv">12</span>, <span class="at">prewhite =</span> <span class="cn">FALSE</span>, <span class="at">adjust =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb41-19"><a href="#cb41-19" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+t test of coefficients:
+
+                    Estimate Std. Error t value  Pr(&gt;|t|)    
+(Intercept)       1637.97298   66.33673 24.6918 &lt; 2.2e-16 ***
+placebo_time0       -1.76430    0.81294 -2.1703  0.031520 *  
+placebo_after      -54.28696   51.23954 -1.0595  0.291043    
+placebo_post_time    2.60080    1.21568  2.1394  0.033981 *  
+month02           -173.87874   51.12373 -3.4011  0.000855 ***
+month03           -134.74318   46.98358 -2.8679  0.004712 ** 
+month04           -247.03619   46.87618 -5.2700 4.535e-07 ***
+month05           -107.11492   55.21219 -1.9401  0.054200 .  
+month06           -150.19365   51.82932 -2.8979  0.004306 ** 
+month07            -72.20095   53.60345 -1.3469  0.179976    
+month08            -55.92253   57.43753 -0.9736  0.331770    
+month09            -26.35840   74.98095 -0.3515  0.725668    
+month10            120.49144   70.47436  1.7097  0.089332 .  
+month11            338.48414   39.82814  8.4986 1.545e-14 ***
+month12            468.97684   46.31450 10.1259 &lt; 2.2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+</div>
+</div>
+<p>We pretend that the seat-belt law was introduced in 1980, even though the actual intervention occurred in 1983. Using only pre-law data, we estimate the same segmented regression with this fake intervention date.</p>
+<ul>
+<li><p>Placebo level change (placebo_after = −54.29): The model estimates an immediate decrease of approximately 54 casualties at the fake intervention date. However, this effect is not statistically significant (p = 0.291).</p></li>
+<li><p>Placebo slope change (placebo_post_time = +2.60): The model estimates an increase in the monthly slope of approximately 2.60 casualties following the fake intervention. This change is statistically significant (p = 0.034).</p></li>
+</ul>
+<p>Although the placebo level change is not statistically significant, the model detects a significant slope change in 1980, when no seat-belt law was introduced. This raises concerns that the model may be capturing unrelated changes in the underlying trend rather than exclusively identifying the effect of the 1983 law. The placebo result does not necessarily invalidate our original findings, but it weakens confidence in the counterfactual trend assumption and suggests that further sensitivity checks are needed.</p>
+</section>
+</section>
+<section id="multiple-group" class="level1">
+<h1>Multiple Group</h1>
+<section id="textbook-example" class="level2">
+<h2 class="anchored" data-anchor-id="textbook-example">Textbook example</h2>
+<p>The textbook uses a simple simulation: ten groups observed in ten periods, all experiencing a one-period shock at <span class="math inline">\(t=6\)</span>. The event-time indicators estimate differences relative to the final pre-event period (<span class="math inline">\(t=5\)</span>).</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1234</span>)</span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>multiple_groups <span class="ot">&lt;-</span> tidyr<span class="sc">::</span><span class="fu">crossing</span>(<span class="at">id =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>, <span class="at">t =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Y =</span> <span class="fu">rnorm</span>(<span class="fu">n</span>()) <span class="sc">+</span> <span class="dv">1</span> <span class="sc">*</span> (t <span class="sc">==</span> <span class="dv">6</span>))</span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>model_multiple <span class="ot">&lt;-</span> fixest<span class="sc">::</span><span class="fu">feols</span>(Y <span class="sc">~</span> <span class="fu">i</span>(t, <span class="at">ref =</span> <span class="dv">5</span>),</span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>                               <span class="at">data =</span> multiple_groups,</span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>                               <span class="at">vcov =</span> <span class="sc">~</span>id)</span>
+<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(model_multiple)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>OLS estimation, Dep. Var.: Y
+Observations: 100
+Standard-errors: Clustered (id) 
+             Estimate Std. Error   t value Pr(&gt;|t|)    
+(Intercept)  0.032647   0.358218  0.091137 0.929380    
+t::1        -0.069835   0.579367 -0.120536 0.906707    
+t::2        -0.148570   0.490805 -0.302707 0.768993    
+t::3        -0.320015   0.494024 -0.647772 0.533307    
+t::4        -0.313858   0.457224 -0.686443 0.509731    
+t::6         0.972486   0.372115  2.613400 0.028114 *  
+t::7        -0.559092   0.481922 -1.160131 0.275845    
+t::8        -0.505457   0.437814 -1.154503 0.278027    
+t::9         0.141370   0.467982  0.302085 0.769452    
+t::10       -0.091117   0.533350 -0.170840 0.868129    
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+RMSE: 0.975766   Adj. R2: 0.065818</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>fixest<span class="sc">::</span><span class="fu">iplot</span>(model_multiple,</span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>             <span class="at">main =</span> <span class="st">"Event-time differences relative to period 5"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Tutorial6_ES_files/figure-html/unnamed-chunk-18-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Each coefficient measures how the mean outcome in that period differs from the reference period. There is <strong>no untreated comparison group</strong> and no adjustment for an underlying secular trend. Even though the simulation’s true effect is confined to <span class="math inline">\(t=6\)</span>, other coefficients may deviate from zero through random noise.</p>
+</section>
+</section>
+<section id="conclusion" class="level1">
+<h1>Conclusion</h1>
+<p>In this tutorial, we used a <strong>single-series event study</strong> to construct abnormal returns, then estimated policy-related <strong>level and slope changes</strong> with segmented regression. We translated those coefficients into <strong>dynamic estimated effects and 95% confidence intervals</strong>, assessed serial correlation using <strong>HAC standard errors</strong>, and checked the sensitivity of our results with alternative specifications and a fake intervention date. Finally, we examined how event-time coefficients can be plotted for multiple affected groups without introducing DID.</p>
+<p>The central lesson is that <strong>estimation and statistical significance are not enough for causal identification</strong>. Each interpretation depends on whether the proposed no-event counterfactual is credible.</p>
 
 
 </section>
